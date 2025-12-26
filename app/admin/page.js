@@ -8,9 +8,9 @@ export default function AdminPage() {
   const router = useRouter();
 
   // --- State Management ---
-  const [blogs, setBlogs] = useState([]); // Stores the list of blogs
-  const [searchQuery, setSearchQuery] = useState(""); // Search filter
-  const [editingId, setEditingId] = useState(null); // ID of blog being edited (null = new mode)
+  const [blogs, setBlogs] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -30,15 +30,12 @@ export default function AdminPage() {
   const fetchBlogs = async () => {
     try {
       const res = await fetch("/api/blogs", { cache: "no-store" });
-      const json = await res.json(); // Get the JSON response
+      const json = await res.json();
 
       if (res.ok) {
-        // Your API returns: { success: true, data: [...] }
         if (json.data && Array.isArray(json.data)) {
           setBlogs(json.data);
-        }
-        // Fallback for other structures
-        else if (Array.isArray(json)) {
+        } else if (Array.isArray(json)) {
           setBlogs(json);
         } else {
           setBlogs([]);
@@ -55,7 +52,6 @@ export default function AdminPage() {
 
   // --- 2. Auto-Slug Logic ---
   useEffect(() => {
-    // Only auto-generate if we are in "Create Mode" and haven't manually edited slug
     if (!slugEdited && !editingId) {
       const generatedSlug = formData.title
         .toLowerCase()
@@ -65,13 +61,12 @@ export default function AdminPage() {
     }
   }, [formData.title, slugEdited, editingId]);
 
-  // --- 3. Handle Form Submit (Create OR Update) ---
+  // --- 3. Handle Form Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: "", type: "" });
 
-    // Format tags
     const payload = {
       ...formData,
       tags:
@@ -84,8 +79,8 @@ export default function AdminPage() {
     };
 
     try {
-      const url = editingId ? `/api/blogs?id=${editingId}` : "/api/blogs"; // Adjust query param logic if needed
-      const method = editingId ? "PUT" : "POST"; // Switch method based on mode
+      const url = editingId ? `/api/blogs?id=${editingId}` : "/api/blogs";
+      const method = editingId ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method: method,
@@ -100,11 +95,7 @@ export default function AdminPage() {
           text: editingId ? "✅ Blog Updated!" : "✅ Blog Published!",
           type: "success",
         });
-
-        // Refresh list
         fetchBlogs();
-
-        // If it was a new post, reset form. If update, stay on it.
         if (!editingId) handleReset();
       } else {
         setMessage({ text: `❌ Error: ${data.error}`, type: "error" });
@@ -115,11 +106,41 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // --- 4. Helper Functions ---
+  // --- 4. Handle Delete (NEW) ---
+  const handleDelete = async () => {
+    if (!editingId) return;
 
-  // Load a blog into the editor
+    if (
+      !window.confirm(
+        "⚠️ Are you sure you want to delete this post? This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/blogs?id=${editingId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setMessage({ text: "🗑️ Blog Deleted", type: "success" });
+        fetchBlogs();
+        handleReset();
+      } else {
+        const data = await res.json();
+        setMessage({ text: `❌ Error: ${data.error}`, type: "error" });
+      }
+    } catch (error) {
+      setMessage({ text: "❌ Delete Failed", type: "error" });
+    }
+    setLoading(false);
+  };
+
+  // --- Helper Functions ---
   const handleEdit = (blog) => {
-    setEditingId(blog._id); // Assuming your DB uses _id
+    setEditingId(blog._id);
     setFormData({
       title: blog.title || "",
       slug: blog.slug || "",
@@ -128,12 +149,20 @@ export default function AdminPage() {
       tags: Array.isArray(blog.tags) ? blog.tags.join(", ") : blog.tags || "",
       content: blog.content || "",
     });
-    setSlugEdited(true); // Stop auto-slug from overwriting existing slug
+    setSlugEdited(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
     setMessage({ text: "", type: "" });
   };
 
-  // Clear form for "New Post"
+  const getDirectImage = (url) => {
+    if (!url) return "";
+    if (url.includes("drive.google.com") && url.includes("/d/")) {
+      const id = url.split("/d/")[1].split("/")[0];
+      return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
+    return url;
+  };
+
   const handleReset = () => {
     setEditingId(null);
     setFormData({
@@ -153,7 +182,6 @@ export default function AdminPage() {
     router.push("/login");
   };
 
-  // --- Filtered List for Search ---
   const filteredBlogs = blogs.filter((b) =>
     b.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -178,11 +206,10 @@ export default function AdminPage() {
         </button>
       </nav>
 
-      {/* --- DASHBOARD LAYOUT (Grid) --- */}
+      {/* --- DASHBOARD LAYOUT --- */}
       <div className="max-w-[1600px] mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* === LEFT SIDEBAR: BLOG LIST (Cols 3) === */}
+        {/* === LEFT SIDEBAR: BLOG LIST === */}
         <div className="lg:col-span-3 flex flex-col gap-4 lg:h-[calc(100vh-100px)] lg:sticky lg:top-24">
-          {/* Create New Button */}
           <button
             onClick={handleReset}
             className={`w-full py-4 rounded-[15px] border-2 border-black font-bold text-lg shadow-[4px_4px_0px_#000] transition-all active:translate-y-1 hover:shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2 ${
@@ -194,9 +221,7 @@ export default function AdminPage() {
             <span>+</span> Create New Post
           </button>
 
-          {/* Search & List Container */}
           <div className="bg-white rounded-[20px] border-2 border-black flex-1 flex flex-col overflow-hidden shadow-[4px_4px_0px_#000]">
-            {/* Search Bar */}
             <div className="p-4 border-b-2 border-gray-100">
               <input
                 type="text"
@@ -207,7 +232,6 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* Scrollable List */}
             <div className="overflow-y-auto flex-1 p-2 space-y-2">
               {filteredBlogs.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm mt-10">
@@ -234,20 +258,17 @@ export default function AdminPage() {
                 ))
               )}
             </div>
-
-            {/* List Footer */}
             <div className="p-2 bg-gray-50 text-center text-xs font-bold border-t-2 border-gray-100 text-gray-400">
               {filteredBlogs.length} Posts
             </div>
           </div>
         </div>
 
-        {/* === RIGHT AREA: EDITOR (Cols 9) === */}
+        {/* === RIGHT AREA: EDITOR === */}
         <form
           onSubmit={handleSubmit}
           className="lg:col-span-9 grid grid-cols-1 xl:grid-cols-3 gap-6"
         >
-          {/* Notifications */}
           {message.text && (
             <div
               className={`xl:col-span-3 p-4 rounded-xl border-2 border-black font-bold flex justify-between items-center shadow-[4px_4px_0px_#000] ${
@@ -267,9 +288,8 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* --- EDITOR COLUMN (Main) --- */}
+          {/* --- EDITOR COLUMN --- */}
           <div className="xl:col-span-2 space-y-6">
-            {/* Title */}
             <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000]">
               <div className="flex justify-between items-center mb-2">
                 <label className={labelClass}>
@@ -293,7 +313,6 @@ export default function AdminPage() {
               />
             </div>
 
-            {/* Content & Markdown */}
             <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] flex flex-col min-h-[600px]">
               <div className="flex items-center justify-between mb-4 border-b-2 border-gray-100 pb-2">
                 <label className={labelClass + " mb-0"}>Content</label>
@@ -349,7 +368,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* --- META COLUMN (Sidebar) --- */}
+          {/* --- META COLUMN --- */}
           <div className="space-y-6 xl:sticky xl:top-24 h-fit">
             {/* Publish Actions */}
             <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[8px_8px_0px_#000]">
@@ -367,9 +386,19 @@ export default function AdminPage() {
                   ? "Save Changes"
                   : "Publish Now"}
               </button>
+
+              {/* --- DELETE BUTTON (New) --- */}
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="mt-3 w-full bg-red-50 text-red-600 font-bold text-sm py-2 rounded-xl border-2 border-red-200 hover:bg-red-100 hover:border-red-400 transition-all"
+                >
+                  Delete Post
+                </button>
+              )}
             </div>
 
-            {/* Meta Data Inputs */}
             <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] space-y-4">
               <div>
                 <label className={labelClass}>Slug</label>
@@ -415,18 +444,22 @@ export default function AdminPage() {
                 <label className={labelClass}>Cover Image</label>
                 <input
                   type="text"
-                  value={formData.coverImage}
+                  value={formData.coverImage} // Keeping raw URL here so you can edit it
                   className={inputClass}
                   onChange={(e) =>
                     setFormData({ ...formData, coverImage: e.target.value })
                   }
                 />
+                {/* Image Preview */}
                 {formData.coverImage && (
-                  <img
-                    src={formData.coverImage}
-                    className="mt-2 rounded border-2 border-black w-full h-32 object-cover"
-                    onError={(e) => (e.target.style.display = "none")}
-                  />
+                  <div className="mt-2 rounded-lg border-2 border-black overflow-hidden h-32 w-full bg-gray-100">
+                    <img
+                      src={getDirectImage(formData.coverImage)} // Apply helper HERE
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => (e.target.style.display = "none")}
+                    />
+                  </div>
                 )}
               </div>
             </div>

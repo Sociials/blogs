@@ -48,3 +48,29 @@ export async function PUT(req) {
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }
+export async function DELETE(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    await dbConnect(); // Make sure your import name matches (dbConnect vs connectToDatabase)
+
+    const deletedBlog = await Blog.findByIdAndDelete(id);
+
+    if (!deletedBlog) {
+      return NextResponse.json({ error: "Blog not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      { success: true, message: "Blog deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("DELETE Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

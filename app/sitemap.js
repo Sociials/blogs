@@ -2,22 +2,27 @@ import dbConnect from "../lib/db";
 import Blog from "../model/Blog";
 
 export default async function sitemap() {
-  // ⚠️ CHANGE THIS to your actual live domain
-  const baseUrl = "https://blogs.sociials.com";
+  const baseUrl = "https://blogs.sociials.com"; // ⚠️ Replace with your actual domain
 
-  // 1. Fetch all blog slugs from MongoDB
   await dbConnect();
+
+  // 1. Fetch slug AND updatedAt
   const blogs = await Blog.find({}, "slug updatedAt").lean();
 
-  // 2. Map blogs to sitemap format
-  const blogEntries = blogs.map((blog) => ({
-    url: `${baseUrl}/post/${blog.slug}`, // Check if your route is /post/ or /blog/
-    lastModified: new Date(blog.updatedAt),
-    changeFrequency: "weekly",
-    priority: 0.7,
-  }));
+  const blogEntries = blogs.map((blog) => {
+    // ⚠️ SAFEGUARD: If updatedAt is missing/invalid, use current date
+    const date = blog.updatedAt ? new Date(blog.updatedAt) : new Date();
+    // Double check if date is valid, if not, fallback to now
+    const validDate = isNaN(date.getTime()) ? new Date() : date;
 
-  // 3. Define your static pages (Home, About, etc.)
+    return {
+      url: `${baseUrl}/post/${blog.slug}`,
+      lastModified: validDate,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    };
+  });
+
   const staticEntries = [
     {
       url: baseUrl,
@@ -25,15 +30,8 @@ export default async function sitemap() {
       changeFrequency: "daily",
       priority: 1,
     },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    // Add other static pages here
+    // Add other static pages like /about if you have them
   ];
 
-  // 4. Return combined list
   return [...staticEntries, ...blogEntries];
 }

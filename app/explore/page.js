@@ -6,7 +6,7 @@ import BlogImage from "../components/BlogImage";
 import Footer from "../components/Footer";
 
 // Force dynamic to handle search params
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ✅ FAST: Caches page for 60 seconds
 
 export default async function ExplorePage({ searchParams }) {
   await dbConnect();

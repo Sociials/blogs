@@ -5,7 +5,7 @@ import dbConnect from "../lib/db";
 import BlogImage from "./components/BlogImage";
 import Footer from "./components/Footer";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ✅ FAST: Caches page for 60 seconds
 
 export default async function Home() {
   await dbConnect();

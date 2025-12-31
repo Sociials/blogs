@@ -7,7 +7,7 @@ import BlogImage from "../../components/BlogImage";
 import Footer from "../../components/Footer";
 
 // Force dynamic rendering to ensure fresh data
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ✅ FAST: Caches page for 60 seconds
 
 async function getBlog(slug) {
   await dbConnect();

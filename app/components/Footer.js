@@ -134,7 +134,6 @@ export default function Footer() {
         {/* BOTTOM BAR */}
         <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400 font-medium uppercase tracking-wide">
           <p>© {new Date().getFullYear()} Sociials. All rights reserved.</p>
-          <p>Designed & Built in India 🇮🇳</p>
         </div>
       </div>
     </footer>

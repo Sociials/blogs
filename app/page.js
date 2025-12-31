@@ -31,18 +31,26 @@ export default async function Home() {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           {/* LOGO: Clean & Bold */}
           <div className="flex items-center gap-6">
-            <Link
-              href="/"
-              className="flex items-center gap-2 select-none group"
-            >
-              <span className="unbounded-900 text-xl tracking-tight">
+            <div className="flex items-center gap-2 select-none group">
+              {/* 1. External Link to Main Site */}
+              <a
+                href="https://sociials.com"
+                className="unbounded-900 text-xl tracking-tight hover:opacity-70 transition-opacity"
+              >
                 Sociials
-              </span>
-              <span className="text-xl font-bold text-gray-400 group-hover:text-black transition-colors">
-                /
-              </span>
-              <span className="text-xl font-bold text-[#A259FF]">Blog</span>
-            </Link>
+              </a>
+
+              {/* Separator */}
+              <span className="text-xl font-bold text-gray-400">/</span>
+
+              {/* 2. Internal Link to Blog Home */}
+              <Link
+                href="/"
+                className="text-xl font-bold text-[#A259FF] hover:underline"
+              >
+                Blog
+              </Link>
+            </div>
 
             {/* Search Pill */}
             <Link

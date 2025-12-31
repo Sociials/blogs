@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import Blog from "../model/Blog";
 import dbConnect from "../lib/db";
 import BlogImage from "./components/BlogImage"; // Ensure this path is correct
+import Footer from "./components/Footer";
 
 export const dynamic = "force-dynamic";
 
@@ -191,14 +192,7 @@ export default async function Home() {
       </main>
 
       {/* --- FOOTER --- */}
-      <footer className="border-t-2 border-black bg-white py-10">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="unbounded-900 text-lg">Sociials.</span>
-          <p className="text-gray-400 text-xs font-medium">
-            &copy; {new Date().getFullYear()} Sociials. Built for creators.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default function AdminPage() {
   const [blogs, setBlogs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState(null);
-
+  const [hasError, setHasError] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -160,6 +160,7 @@ export default function AdminPage() {
       const id = url.split("/d/")[1].split("/")[0];
       return `https://drive.google.com/uc?export=view&id=${id}`;
     }
+    console.log(url);
     return url;
   };
 
@@ -454,10 +455,9 @@ export default function AdminPage() {
                 {formData.coverImage && (
                   <div className="mt-2 rounded-lg border-2 border-black overflow-hidden h-32 w-full bg-gray-100">
                     <img
-                      src={getDirectImage(formData.coverImage)} // Apply helper HERE
+                      src={getDirectImage(formData.coverImage) || ""}
                       alt="Preview"
                       className="w-full h-full object-cover"
-                      onError={(e) => (e.target.style.display = "none")}
                     />
                   </div>
                 )}

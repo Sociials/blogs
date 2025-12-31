@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 
 export default function BlogImage({ src, alt }) {
   const [error, setError] = useState(false);
@@ -14,7 +13,19 @@ export default function BlogImage({ src, alt }) {
     }
   };
 
-  // 2. If it's empty, gibberish, or previously failed to load -> Show Fallback
+  // 2. HELPER: Convert Google Drive Link to Direct Image Link
+  const getDirectImage = (url) => {
+    if (!url) return "";
+    if (url.includes("drive.google.com") && url.includes("/d/")) {
+      const id = url.split("/d/")[1].split("/")[0];
+      return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
+    return url;
+  };
+
+  const finalSrc = getDirectImage(src);
+
+  // 3. Fallback UI (Empty, Error, or Invalid)
   if (!src || !isValidUrl(src) || error) {
     return (
       <div className="w-full h-full bg-gray-200 flex flex-col items-center justify-center text-gray-400 p-4 text-center">
@@ -38,14 +49,13 @@ export default function BlogImage({ src, alt }) {
     );
   }
 
-  // 3. If URL looks valid, try to render it
+  // 4. Render Standard HTML Image (Browser handles the redirect)
   return (
-    <Image
-      src={src}
+    <img
+      src={finalSrc}
       alt={alt}
-      fill
-      className="object-cover group-hover:scale-105 transition-transform duration-500"
-      onError={() => setError(true)} // Catches network 404s
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      onError={() => setError(true)}
     />
   );
 }

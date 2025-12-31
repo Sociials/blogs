@@ -1,10 +1,13 @@
-// app/post/[slug]/page.js
 import dbConnect from "../../../lib/db";
 import Blog from "../../../model/Blog";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import BlogImage from "../../components/BlogImage"; // 👈 Import the safe image component
+import BlogImage from "../../components/BlogImage";
+import Footer from "../../components/Footer";
+
+// Force dynamic rendering to ensure fresh data
+export const dynamic = "force-dynamic";
 
 async function getBlog(slug) {
   await dbConnect();
@@ -22,113 +25,130 @@ export default async function BlogPost({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F2EC] font-sans text-black pb-16">
+    <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col selection:bg-[#A259FF] selection:text-white">
       {/* --- NAVBAR --- */}
-      <nav className="border-b-2 border-black py-4 px-6 sticky top-0 bg-[#F3F2EC]/90 backdrop-blur-sm z-20">
-        <div className="max-w-4xl mx-auto flex items-center">
-          <Link
-            href="/"
-            className="group flex items-center text-sm font-bold text-gray-600 hover:text-black transition-colors"
-          >
-            <div className="mr-2 bg-white border-2 border-black rounded-full p-1 transition-transform group-hover:-translate-x-1">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={3}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </div>
-            Back to All Posts
-          </Link>
+      <nav className="w-full border-b border-gray-100 py-4 px-4 md:px-8 sticky top-0 bg-white/80 backdrop-blur-md z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          {/* Logo */}
+          <div className="flex items-center gap-3 select-none">
+            <a
+              href="https://sociials.com"
+              className="unbounded-900 text-lg md:text-xl tracking-tight hover:text-[#A259FF] transition-colors"
+            >
+              Sociials
+            </a>
+            <span className="text-gray-300 text-xl font-light">/</span>
+            <Link
+              href="/"
+              className="font-bold text-lg md:text-xl text-gray-900"
+            >
+              Blog
+            </Link>
+          </div>
+
+          {/* Back Button */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="text-xs font-bold bg-white text-black border-2 border-black px-5 py-2 rounded-full hover:bg-black hover:text-white transition-all"
+            >
+              ← Back
+            </Link>
+          </div>
         </div>
       </nav>
 
-      <article className="max-w-4xl mx-auto px-6 py-12">
-        {/* --- HEADER SECTION --- */}
-        <header className="mb-10 text-center">
-          {/* Date Pill */}
-          <div className="inline-block bg-black text-white text-sm font-bold px-3 py-1 rounded-md uppercase tracking-wider mb-6 shadow-[4px_4px_0px_#A259FF]">
-            {new Date(blog.createdAt).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+      <main className="flex-1 w-full">
+        {/* --- ARTICLE HEADER --- */}
+        <header className="max-w-4xl mx-auto px-6 pt-16 pb-12 text-center">
+          {/* Meta Info */}
+          <div className="flex justify-center items-center gap-3 mb-6 text-sm font-bold uppercase tracking-widest text-gray-500">
+            <span>
+              {new Date(blog.createdAt).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+            <span className="text-[#A259FF]">
+              {(blog.tags && blog.tags[0]) || "Update"}
+            </span>
           </div>
 
           {/* Title */}
-          <h1 className="unbounded-900 text-3xl md:text-5xl lg:text-6xl leading-tight mb-6 text-black">
+          <h1 className="unbounded-900 text-4xl md:text-6xl leading-[1.1] mb-8 text-black">
             {blog.title}
           </h1>
 
-          {/* Tags (Optional - Added since we have them now) */}
-          {(blog.tags || []).length > 0 && (
-            <div className="flex justify-center gap-2 mb-6">
-              {blog.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs font-bold uppercase tracking-wider border border-gray-400 text-gray-600 px-2 py-1 rounded bg-white"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Summary */}
-          <p className="text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium border-l-4 border-[#A259FF] pl-4 italic">
-            "{blog.summary}"
+          {/* Summary/Lead */}
+          <p className="text-xl md:text-2xl text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
+            {blog.summary}
           </p>
         </header>
 
-        {/* --- COVER IMAGE SECTION (Safe Version) --- */}
+        {/* --- HERO IMAGE (Natural Height Fix) --- */}
         {blog.coverImage && (
-          <div className="mb-10 relative h-[300px] md:h-[500px] w-full rounded-[30px] overflow-hidden border-2 border-black shadow-[8px_8px_0px_#000] bg-gray-100">
-            {/* 👇 Using BlogImage instead of Next/Image directly */}
-            <BlogImage
-              src={blog.coverImage}
-              alt={`Cover image for ${blog.title}`}
-            />
+          <div className="max-w-5xl mx-auto px-4 md:px-6 mb-16">
+            {/* Used 'h-auto' instead of aspect-ratio to prevent cutting/skewing.
+                   The image will show in its full natural dimensions.
+                */}
+            <div className="w-full h-auto rounded-[20px] overflow-hidden border-2 border-black shadow-[4px_4px_0px_#000] bg-gray-100">
+              <img
+                src={
+                  blog.coverImage.includes("drive.google.com")
+                    ? `https://drive.google.com/uc?export=view&id=${
+                        blog.coverImage.split("/d/")[1].split("/")[0]
+                      }`
+                    : blog.coverImage
+                }
+                alt={blog.title}
+                className="w-full h-auto object-contain"
+              />
+            </div>
           </div>
         )}
 
-        {/* --- MAIN CONTENT (Markdown) --- */}
-        <div
-          className="
-            bg-white p-8 md:p-12 
-            rounded-[30px] border-2 border-black 
-            shadow-[8px_8px_0px_#000] 
-        "
-        >
+        {/* --- CONTENT --- */}
+        <article className="max-w-3xl mx-auto px-6 pb-20">
           <div
             className="
-            prose prose-lg prose-gray max-w-none text-black
-            prose-headings:font-bold prose-headings:text-black
-            prose-a:text-[#A259FF] prose-a:no-underline prose-a:font-bold hover:prose-a:underline
-            prose-blockquote:border-l-4 prose-blockquote:border-black prose-blockquote:bg-gray-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
-            prose-img:rounded-xl prose-img:border-2 prose-img:border-black prose-img:shadow-[4px_4px_0px_#000]
-          "
+                prose prose-lg md:prose-xl max-w-none text-gray-800
+                prose-headings:font-black prose-headings:text-black prose-headings:font-sans
+                prose-p:leading-relaxed prose-p:text-gray-600
+                prose-a:text-[#A259FF] prose-a:no-underline prose-a:font-bold hover:prose-a:text-black hover:prose-a:underline
+                prose-blockquote:border-l-4 prose-blockquote:border-[#A259FF] prose-blockquote:bg-gray-50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:font-medium
+                prose-img:rounded-xl prose-img:border-2 prose-img:border-black prose-img:shadow-[4px_4px_0px_#000]
+                prose-code:bg-gray-100 prose-code:text-black prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
+                prose-hr:border-black prose-hr:my-12
+            "
           >
             <ReactMarkdown>{blog.content}</ReactMarkdown>
           </div>
-        </div>
-      </article>
 
-      {/* --- FOOTER --- */}
-      <footer className="text-center pt-8">
-        <Link
-          href="/"
-          className="unbounded-900 text-[#A259FF] hover:text-black transition-colors text-lg"
-        >
-          Read more on Sociials Blog &rarr;
-        </Link>
-      </footer>
+          {/* --- TAGS FOOTER --- */}
+          {(blog.tags || []).length > 0 && (
+            <div className="mt-16 pt-8 border-t border-gray-200">
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
+                Filed Under
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {blog.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/explore?tag=${tag}`}
+                    className="text-sm font-bold bg-white border-2 border-black px-4 py-1.5 rounded-full hover:bg-black hover:text-white transition-all"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </article>
+      </main>
+
+      <Footer />
     </div>
   );
 }

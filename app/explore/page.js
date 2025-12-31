@@ -1,8 +1,9 @@
-// app/explore/page.js
 import Link from "next/link";
+import { cookies } from "next/headers";
 import dbConnect from "../../lib/db";
 import Blog from "../../model/Blog";
-import BlogImage from "../components/BlogImage"; // 👈 Don't forget to import this
+import BlogImage from "../components/BlogImage";
+import Footer from "../components/Footer";
 
 // Force dynamic to handle search params
 export const dynamic = "force-dynamic";
@@ -32,59 +33,68 @@ export default async function ExplorePage({ searchParams }) {
   const blogs = await Blog.find(dbQuery).sort({ createdAt: -1 }).lean();
   const allTags = await Blog.distinct("tags");
 
-  return (
-    <div className="min-h-screen bg-[#F3F2EC] font-sans text-black">
-      {/* --- NAVBAR (Consistent with Home) --- */}
-      <nav className="w-full border-b-2 border-black py-5 px-6 sticky top-0 bg-[#F3F2EC]/95 backdrop-blur-md z-30">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 select-none group">
-            <span className="unbounded-900 text-xl tracking-tight">
-              Sociials
-            </span>
-            <span className="text-xl font-bold text-gray-400 group-hover:text-black transition-colors">
-              /
-            </span>
-            <span className="text-xl font-bold text-[#A259FF]">Blog</span>
-          </Link>
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.has("admin_token");
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-4">
+  return (
+    <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col selection:bg-[#A259FF] selection:text-white">
+      {/* --- NAVBAR (Consistent with Home) --- */}
+      <nav className="w-full border-b border-gray-100 py-4 px-4 md:px-8 sticky top-0 bg-white/80 backdrop-blur-md z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          {/* Logo */}
+          <div className="flex items-center gap-3 select-none">
+            <a
+              href="https://sociials.com"
+              className="unbounded-900 text-lg md:text-xl tracking-tight hover:text-[#A259FF] transition-colors"
+            >
+              Sociials
+            </a>
+            <span className="text-gray-300 text-xl font-light">/</span>
             <Link
               href="/"
-              className="text-xs font-bold border-2 border-black bg-white px-4 py-2 rounded-full hover:shadow-[3px_3px_0px_#000] hover:-translate-y-0.5 transition-all"
+              className="font-bold text-lg md:text-xl text-gray-900"
             >
-              ← Back to Home
+              Blog
+            </Link>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="text-xs font-bold bg-white text-black border-2 border-black px-5 py-2 rounded-full hover:bg-black hover:text-white transition-all"
+            >
+              ← Home
             </Link>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <main className="flex-1 max-w-5xl mx-auto px-4 md:px-6 py-16 w-full">
         {/* --- SEARCH HEADER --- */}
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <h1 className="unbounded-900 text-4xl sm:text-6xl mb-8">
-            Explore <span className="text-[#A259FF]">Topics</span>
+        <div className="max-w-2xl mx-auto text-center mb-20">
+          <h1 className="unbounded-900 text-4xl sm:text-6xl mb-8 tracking-tighter text-black">
+            Explore <span className="text-[#A259FF]">The Feed</span>
           </h1>
 
-          {/* Search Form */}
-          <form action="/explore" method="GET" className="relative mb-10 group">
+          {/* Search Form (Modern Editorial: Bold Black Border) */}
+          <form action="/explore" method="GET" className="relative mb-8 group">
             <input
               type="text"
               name="q"
-              placeholder="Search for tutorials, updates..."
+              placeholder="Type keywords..."
               defaultValue={query}
-              className="w-full p-5 pl-8 rounded-full border-2 border-black shadow-[4px_4px_0px_#000] focus:outline-none focus:shadow-[6px_6px_0px_#A259FF] focus:-translate-y-1 transition-all text-lg font-medium placeholder:text-gray-400"
+              className="w-full bg-white border-2 border-black rounded-xl p-4 pl-6 text-lg font-bold shadow-sm focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all placeholder:text-gray-400 text-black"
             />
             <button
               type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black text-white p-3 rounded-full hover:bg-[#A259FF] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black text-white p-2 rounded-lg hover:bg-[#A259FF] transition-colors"
             >
               <svg
                 className="w-5 h-5"
                 fill="none"
-                viewBox="0 0 24 24"
                 stroke="currentColor"
+                viewBox="0 0 24 24"
               >
                 <path
                   strokeLinecap="round"
@@ -96,26 +106,26 @@ export default async function ExplorePage({ searchParams }) {
             </button>
           </form>
 
-          {/* Tag Cloud */}
-          <div className="flex flex-wrap justify-center gap-3">
+          {/* Tag Cloud (Clean Black Borders) */}
+          <div className="flex flex-wrap justify-center gap-2">
             <Link
               href="/explore"
-              className={`px-5 py-2 rounded-full border-2 border-black text-sm font-bold transition-all hover:-translate-y-1 hover:shadow-[3px_3px_0px_#000] ${
+              className={`px-4 py-1.5 rounded-lg border-2 border-black text-xs font-bold uppercase tracking-wide transition-all ${
                 !tagFilter && !query
                   ? "bg-black text-white"
-                  : "bg-white text-black"
+                  : "bg-white text-black hover:bg-gray-100"
               }`}
             >
-              All Posts
+              All
             </Link>
             {allTags.map((tag) => (
               <Link
                 key={tag}
                 href={`/explore?tag=${tag}`}
-                className={`px-5 py-2 rounded-full border-2 border-black text-sm font-bold transition-all hover:-translate-y-1 hover:shadow-[3px_3px_0px_#A259FF] ${
+                className={`px-4 py-1.5 rounded-lg border-2 border-black text-xs font-bold uppercase tracking-wide transition-all ${
                   tagFilter === tag
-                    ? "bg-[#A259FF] text-white shadow-[3px_3px_0px_#000]"
-                    : "bg-white text-black"
+                    ? "bg-[#A259FF] text-white border-[#A259FF]"
+                    : "bg-white text-black hover:border-[#A259FF] hover:text-[#A259FF]"
                 }`}
               >
                 #{tag}
@@ -125,84 +135,88 @@ export default async function ExplorePage({ searchParams }) {
         </div>
 
         {/* --- RESULTS GRID --- */}
-        <div className="mb-8 border-b-2 border-gray-200 pb-4 flex items-baseline justify-between">
-          <h2 className="font-bold text-2xl">
-            {query
-              ? `Search: "${query}"`
-              : tagFilter
-              ? `Topic: #${tagFilter}`
-              : "Latest Articles"}
+        <div className="mb-10 border-b border-black pb-4 flex items-baseline justify-between">
+          <h2 className="font-black text-xl md:text-2xl text-black uppercase tracking-tight">
+            {query ? (
+              <span>
+                Results for <span className="text-[#A259FF]">"{query}"</span>
+              </span>
+            ) : tagFilter ? (
+              <span>
+                Topic: <span className="text-[#A259FF]">#{tagFilter}</span>
+              </span>
+            ) : (
+              "All Articles"
+            )}
           </h2>
-          <span className="text-gray-500 font-bold text-sm">
-            {blogs.length} {blogs.length === 1 ? "Result" : "Results"}
+          <span className="text-xs font-bold text-gray-500">
+            {blogs.length} Found
           </span>
         </div>
 
         {blogs.length === 0 ? (
-          <div className="text-center py-24 border-2 border-dashed border-gray-300 rounded-[30px] bg-white/50">
-            <p className="text-xl text-gray-500 font-bold mb-2">
-              No results found.
+          <div className="text-center py-24 border-2 border-dashed border-gray-300 rounded-[20px]">
+            <p className="text-xl text-gray-500 font-bold mb-4">
+              Nothing found here.
             </p>
             <Link
               href="/explore"
-              className="text-[#A259FF] font-bold text-lg hover:underline underline-offset-4 decoration-2"
+              className="inline-block bg-black text-white px-6 py-2 rounded-lg font-bold hover:bg-[#A259FF] transition-colors"
             >
-              Clear search filters
+              Clear Filters
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {blogs.map((blog) => (
               <Link
                 key={blog._id}
                 href={`/post/${blog.slug}`}
                 className="group block h-full outline-none"
               >
-                <article
-                  className={`
-                    h-full flex flex-col
-                    bg-white 
-                    rounded-[24px] border-2 border-black 
-                    shadow-[4px_4px_0px_#000] 
-                    transition-all duration-300 
-                    hover:-translate-y-1 hover:shadow-[6px_6px_0px_#15F5BA]
-                    overflow-hidden
-                  `}
-                >
-                  {/* Cover Image (Optional: Keeps it visual) */}
-                  {blog.coverImage && (
-                    <div className="relative w-full h-48 border-b-2 border-black bg-gray-50">
+                <article className="flex flex-col h-full bg-white border-2 border-black rounded-[20px] overflow-hidden shadow-[4px_4px_0px_#000] hover:shadow-[4px_4px_0px_#A259FF] hover:-translate-y-1 transition-all duration-300">
+                  {/* Thumbnail */}
+                  <div className="w-full h-64 border-b-2 border-black relative bg-gray-50">
+                    {blog.coverImage && (
                       <BlogImage src={blog.coverImage} alt={blog.title} />
-                    </div>
-                  )}
+                    )}
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
+                  </div>
 
-                  <div className="p-6 flex flex-col flex-grow">
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {(blog.tags || []).slice(0, 3).map((t) => (
-                        <span
-                          key={t}
-                          className="text-[10px] font-bold uppercase tracking-wider bg-gray-50 px-2 py-1 rounded border border-gray-200 text-gray-600"
-                        >
-                          #{t}
-                        </span>
-                      ))}
+                  <div className="p-6 md:p-8 flex flex-col flex-grow">
+                    {/* Meta */}
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        {new Date(blog.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </div>
                     </div>
 
-                    <h2 className="unbounded-900 text-xl mb-3 leading-tight group-hover:underline decoration-2 underline-offset-4 decoration-black">
+                    <h2 className="unbounded-900 text-2xl mb-3 leading-tight group-hover:text-[#A259FF] transition-colors">
                       {blog.title}
                     </h2>
 
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-6">
+                    <p className="text-gray-600 text-sm line-clamp-2 mb-6 leading-relaxed font-medium">
                       {blog.summary}
                     </p>
 
-                    <div className="mt-auto flex items-center justify-between text-xs font-bold text-gray-400">
-                      <span>
-                        {new Date(blog.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="text-black group-hover:text-[#A259FF] transition-colors">
-                        Read →
+                    <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100 group-hover:border-black transition-colors">
+                      <div className="flex gap-2">
+                        {(blog.tags || []).slice(0, 2).map((t) => (
+                          <span
+                            key={t}
+                            className="text-[10px] font-black uppercase tracking-wider text-black border border-gray-200 px-2 py-1 rounded"
+                          >
+                            #{t}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-black group-hover:translate-x-1 transition-transform">
+                        Read Article →
                       </span>
                     </div>
                   </div>
@@ -211,7 +225,9 @@ export default async function ExplorePage({ searchParams }) {
             ))}
           </div>
         )}
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

@@ -1,146 +1,154 @@
 import Link from "next/link";
 
 export default function Footer() {
-  const linkClass =
-    "block w-fit text-lg font-bold text-gray-800 hover:text-[#A259FF] hover:translate-x-1 transition-all duration-200";
-
   return (
-    // 1. Full width container with a thick top border
-    <footer className="w-full bg-white border-t-[3px] border-black mt-auto font-sans">
-      {/* 2. The Grid Layout (Divided by black lines) */}
-      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12">
-        {/* === SECTION 1: BRANDING (Takes up 5 columns) === */}
-        {/* 'lg:border-r-[3px]' adds the vertical divider line */}
-        <div className="lg:col-span-5 p-8 lg:p-12 border-b-[3px] lg:border-b-0 lg:border-r-[3px] border-black flex flex-col justify-between h-full bg-[#A259FF]/5 relative overflow-hidden">
-          {/* Background Texture (Dots) */}
-          <div
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage: "radial-gradient(#000 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-            }}
-          ></div>
+    <footer className="w-full bg-white border-t border-gray-100 mt-auto font-sans pt-16 pb-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+          {/* 1. BRAND COLUMN (4 Cols) */}
+          <div className="md:col-span-4 flex flex-col gap-6">
+            <div>
+              <Link
+                href="/"
+                className="unbounded-900 text-2xl tracking-tight text-gray-900 hover:text-[#A259FF] transition-colors"
+              >
+                Sociials<span className="text-gray-300">.</span>Blog
+              </Link>
+              <p className="mt-4 text-gray-500 text-sm leading-relaxed max-w-sm">
+                Engineering deep dives, product updates, and unfiltered stories
+                from the team building the future of link-in-bio.
+              </p>
+            </div>
 
-          <div className="relative z-10">
-            <h2 className="unbounded-900 text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none mb-4">
-              Sociials
-              <br />
-              <span className="text-transparent stroke-text">Blog</span>.
-            </h2>
-            <p className="font-medium text-black max-w-sm mt-4">
-              The chaotic, unfiltered, and pixelated diary of a developer
-              building in public.
-            </p>
-          </div>
-
-          <div className="relative z-10 mt-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
-              Connect
-            </p>
+            {/* Socials - Clean & Simple */}
             <div className="flex gap-4">
-              <SocialIcon label="TW" />
-              <SocialIcon label="GH" />
-              <SocialIcon label="IN" />
-              <SocialIcon label="YT" />
+              <SocialLink href="#" icon="TW" />
+              <SocialLink href="#" icon="GH" />
+              <SocialLink href="#" icon="IN" />
             </div>
           </div>
-        </div>
 
-        {/* === SECTION 2: NAVIGATION (Takes up 3 columns) === */}
-        <div className="lg:col-span-3 p-8 lg:p-12 border-b-[3px] lg:border-b-0 lg:border-r-[3px] border-black">
-          <h3 className="font-black text-xl mb-6 uppercase flex items-center gap-2">
-            <span className="w-3 h-3 bg-[#A259FF] border border-black block"></span>
-            Explore
-          </h3>
-          <ul className="space-y-4">
-            <li>
-              <Link href="/" className={linkClass}>
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link href="/about" className={linkClass}>
-                About Creator
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className={linkClass}>
-                Contact
-              </Link>
-            </li>
-            <li>
-              <Link href="/rss.xml" className={linkClass}>
-                RSS Feed
-              </Link>
-            </li>
-            <li>
-              <Link href="/admin" className={`${linkClass} text-gray-400`}>
-                Admin Login
-              </Link>
-            </li>
-          </ul>
-        </div>
+          {/* 2. LINKS COLUMN (2 Cols) */}
+          <div className="md:col-span-2">
+            <h4 className="font-bold text-gray-900 mb-6 text-sm uppercase tracking-wider">
+              Explore
+            </h4>
+            <ul className="space-y-3 text-sm text-gray-500 font-medium">
+              <li>
+                <Link
+                  href="/"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/explore"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  Topics
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="https://sociials.com"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  Main App ↗
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-        {/* === SECTION 3: LEGAL / NEWSLETTER (Takes up 4 columns) === */}
-        <div className="lg:col-span-4 p-8 lg:p-12 bg-gray-50">
-          <h3 className="font-black text-xl mb-6 uppercase flex items-center gap-2">
-            <span className="w-3 h-3 bg-red-500 border border-black block"></span>
-            Legal Stuff
-          </h3>
-          <ul className="space-y-4 mb-8">
-            <li>
-              <Link href="/privacy-policy" className={linkClass}>
-                Privacy Policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms" className={linkClass}>
-                Terms of Service
-              </Link>
-            </li>
-            <li>
-              <Link href="/disclaimer" className={linkClass}>
-                Disclaimer
-              </Link>
-            </li>
-          </ul>
+          {/* 3. LEGAL COLUMN (2 Cols) */}
+          <div className="md:col-span-2">
+            <h4 className="font-bold text-gray-900 mb-6 text-sm uppercase tracking-wider">
+              Legal
+            </h4>
+            <ul className="space-y-3 text-sm text-gray-500 font-medium">
+              <li>
+                <Link
+                  href="/privacy-policy"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/terms"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/disclaimer"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  Disclaimer
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/contact"
+                  className="hover:text-[#A259FF] transition-colors"
+                >
+                  Contact
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-          {/* Newsletter Box */}
-          <div className="mt-auto bg-white border-2 border-black p-4 shadow-[4px_4px_0px_#000]">
-            <p className="text-xs font-bold mb-2">STAY UPDATED</p>
+          {/* 4. NEWSLETTER COLUMN (4 Cols) */}
+          <div className="md:col-span-4 bg-gray-50 rounded-2xl p-6">
+            <h4 className="font-bold text-gray-900 mb-2">
+              Subscribe to the feed
+            </h4>
+            <p className="text-gray-500 text-xs mb-4">
+              Latest stories delivered to your inbox weekly. No spam.
+            </p>
             <div className="flex gap-2">
               <input
                 type="email"
-                placeholder="Email..."
-                className="w-full bg-gray-100 border border-black p-2 text-sm focus:outline-none"
+                placeholder="Email address"
+                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#A259FF] transition-colors"
               />
-              <button className="bg-[#A259FF] text-white font-bold px-3 py-1 border border-black hover:bg-black transition-colors">
-                →
+              <button className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#A259FF] transition-colors">
+                Join
               </button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* === BOTTOM BAR === */}
-      <div className="border-t-[3px] border-black bg-black text-white p-4">
-        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center text-xs md:text-sm font-mono font-bold">
-          <p>COPYRIGHT © {new Date().getFullYear()} SOCIIALS.</p>
-          <p></p>
+        {/* BOTTOM BAR */}
+        <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400 font-medium uppercase tracking-wide">
+          <p>© {new Date().getFullYear()} Sociials. All rights reserved.</p>
+          <p>Designed & Built in India 🇮🇳</p>
         </div>
       </div>
     </footer>
   );
 }
 
-// Mini Component for Social Buttons
-function SocialIcon({ label }) {
+// Helper for Social Icons
+function SocialLink({ href, icon }) {
   return (
     <a
-      href="#"
-      className="w-10 h-10 flex items-center justify-center border-2 border-black font-black hover:bg-[#A259FF] hover:text-white hover:-translate-y-1 hover:shadow-[3px_3px_0px_#000] transition-all bg-white"
+      href={href}
+      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-xs font-bold hover:bg-black hover:text-white transition-all"
     >
-      {label}
+      {icon}
     </a>
   );
 }

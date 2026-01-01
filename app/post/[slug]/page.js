@@ -3,11 +3,11 @@ import Blog from "../../../model/Blog";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import BlogImage from "../../components/BlogImage";
 import Footer from "../../components/Footer";
 
-// Force dynamic rendering to ensure fresh data
-export const revalidate = 60; // ✅ FAST: Caches page for 60 seconds
+// ✅ SEO CONFIG
+export const revalidate = 60;
+export const dynamicParams = true;
 
 async function getBlog(slug) {
   await dbConnect();
@@ -16,20 +16,59 @@ async function getBlog(slug) {
   return JSON.parse(JSON.stringify(blog));
 }
 
+// 🆕 NEW: Fetch 3 related posts based on tags (excluding current one)
+async function getRelatedBlogs(currentSlug, tags) {
+  await dbConnect();
+  if (!tags || tags.length === 0) return [];
+
+  const related = await Blog.find({
+    tags: { $in: tags }, // Find posts with matching tags
+    slug: { $ne: currentSlug }, // Exclude current post
+  })
+    .sort({ createdAt: -1 })
+    .limit(3) // Get top 3
+    .select("title slug coverImage createdAt") // Only fetch needed fields
+    .lean();
+
+  return JSON.parse(JSON.stringify(related));
+}
+
+// ... generateMetadata function (keep the one from previous answer) ...
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const blog = await getBlog(slug);
+  if (!blog) return { title: "Post Not Found" };
+
+  return {
+    title: blog.title,
+    description: blog.summary,
+    alternates: {
+      canonical: `https://blogs.sociials.com/post/${slug}`,
+    },
+    // ... rest of metadata ...
+  };
+}
+
 export default async function BlogPost({ params }) {
   const { slug } = await params;
   const blog = await getBlog(slug);
 
-  if (!blog) {
-    notFound();
-  }
+  if (!blog) notFound();
+
+  // 🆕 Fetch Related Posts
+  const relatedBlogs = await getRelatedBlogs(slug, blog.tags);
+
+  const displayImage = blog.coverImage?.includes("drive.google.com")
+    ? `https://drive.google.com/uc?export=view&id=${
+        blog.coverImage.split("/d/")[1].split("/")[0]
+      }`
+    : blog.coverImage;
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col selection:bg-[#A259FF] selection:text-white">
-      {/* --- NAVBAR --- */}
+      {/* ... Navbar (Keep existing) ... */}
       <nav className="w-full border-b border-gray-100 py-4 px-4 md:px-8 sticky top-0 bg-white/80 backdrop-blur-md z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Logo */}
           <div className="flex items-center gap-3 select-none">
             <a
               href="https://sociials.com"
@@ -45,23 +84,18 @@ export default async function BlogPost({ params }) {
               Blog
             </Link>
           </div>
-
-          {/* Back Button */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="text-xs font-bold bg-white text-black border-2 border-black px-5 py-2 rounded-full hover:bg-black hover:text-white transition-all"
-            >
-              ← Back
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="text-xs font-bold bg-white text-black border-2 border-black px-5 py-2 rounded-full hover:bg-black hover:text-white transition-all"
+          >
+            ← Back
+          </Link>
         </div>
       </nav>
 
       <main className="flex-1 w-full">
-        {/* --- ARTICLE HEADER --- */}
+        {/* ... Header & Hero Image (Keep existing) ... */}
         <header className="max-w-4xl mx-auto px-6 pt-16 pb-12 text-center">
-          {/* Meta Info */}
           <div className="flex justify-center items-center gap-3 mb-6 text-sm font-bold uppercase tracking-widest text-gray-500">
             <span>
               {new Date(blog.createdAt).toLocaleDateString("en-US", {
@@ -70,38 +104,20 @@ export default async function BlogPost({ params }) {
                 year: "numeric",
               })}
             </span>
-            <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-            <span className="text-[#A259FF]">
-              {(blog.tags && blog.tags[0]) || "Update"}
-            </span>
           </div>
-
-          {/* Title */}
           <h1 className="unbounded-900 text-4xl md:text-6xl leading-[1.1] mb-8 text-black">
             {blog.title}
           </h1>
-
-          {/* Summary/Lead */}
           <p className="text-xl md:text-2xl text-gray-500 font-medium leading-relaxed max-w-2xl mx-auto">
             {blog.summary}
           </p>
         </header>
 
-        {/* --- HERO IMAGE (Natural Height Fix) --- */}
-        {blog.coverImage && (
+        {displayImage && (
           <div className="max-w-5xl mx-auto px-4 md:px-6 mb-16">
-            {/* Used 'h-auto' instead of aspect-ratio to prevent cutting/skewing.
-                   The image will show in its full natural dimensions.
-                */}
             <div className="w-full h-auto rounded-[20px] overflow-hidden border-2 border-black shadow-[4px_4px_0px_#000] bg-gray-100">
               <img
-                src={
-                  blog.coverImage.includes("drive.google.com")
-                    ? `https://drive.google.com/uc?export=view&id=${
-                        blog.coverImage.split("/d/")[1].split("/")[0]
-                      }`
-                    : blog.coverImage
-                }
+                src={displayImage}
                 alt={blog.title}
                 className="w-full h-auto object-contain"
               />
@@ -109,29 +125,45 @@ export default async function BlogPost({ params }) {
           </div>
         )}
 
-        {/* --- CONTENT --- */}
-        <article className="max-w-3xl mx-auto px-6 pb-20">
-          <div
-            className="
-                prose prose-lg md:prose-xl max-w-none text-gray-800
-                prose-headings:font-black prose-headings:text-black prose-headings:font-sans
-                prose-p:leading-relaxed prose-p:text-gray-600
-                prose-a:text-[#A259FF] prose-a:no-underline prose-a:font-bold hover:prose-a:text-black hover:prose-a:underline
-                prose-blockquote:border-l-4 prose-blockquote:border-[#A259FF] prose-blockquote:bg-gray-50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:font-medium
-                prose-img:rounded-xl prose-img:border-2 prose-img:border-black prose-img:shadow-[4px_4px_0px_#000]
-                prose-code:bg-gray-100 prose-code:text-black prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-                prose-hr:border-black prose-hr:my-12
-            "
-          >
-            <ReactMarkdown>{blog.content}</ReactMarkdown>
+        <article className="max-w-3xl mx-auto px-6 pb-10">
+          <div className="prose prose-lg md:prose-xl max-w-none text-gray-800 ... (keep your classes)">
+            {/* 🆕 OPTIMIZED MARKDOWN LINKS */}
+            <ReactMarkdown
+              components={{
+                a: ({ href, children }) => {
+                  const isInternal =
+                    href &&
+                    (href.startsWith("/") || href.includes("sociials.com"));
+                  if (isInternal) {
+                    return (
+                      <Link
+                        href={href}
+                        className="text-[#A259FF] no-underline font-bold hover:text-black hover:underline"
+                      >
+                        {children}
+                      </Link>
+                    );
+                  }
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#A259FF] no-underline font-bold hover:text-black hover:underline"
+                    >
+                      {children} ↗
+                    </a>
+                  );
+                },
+              }}
+            >
+              {blog.content}
+            </ReactMarkdown>
           </div>
 
-          {/* --- TAGS FOOTER --- */}
+          {/* Tags Footer (Keep existing) */}
           {(blog.tags || []).length > 0 && (
             <div className="mt-16 pt-8 border-t border-gray-200">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
-                Filed Under
-              </p>
               <div className="flex flex-wrap gap-2">
                 {blog.tags.map((tag) => (
                   <Link
@@ -146,8 +178,49 @@ export default async function BlogPost({ params }) {
             </div>
           )}
         </article>
-      </main>
 
+        {/* 🆕 READ NEXT SECTION (Internal Linking Booster) */}
+        {relatedBlogs.length > 0 && (
+          <section className="bg-gray-50 border-t border-gray-200 py-16">
+            <div className="max-w-5xl mx-auto px-6">
+              <h3 className="unbounded-900 text-2xl mb-8">Read Next</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {relatedBlogs.map((post) => (
+                  <Link
+                    key={post.slug}
+                    href={`/post/${post.slug}`}
+                    className="group block h-full"
+                  >
+                    <article className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-black hover:shadow-[4px_4px_0px_#A259FF] hover:-translate-y-1 transition-all h-full flex flex-col">
+                      {/* Optional Mini Thumbnail */}
+                      {post.coverImage && (
+                        <div className="h-40 bg-gray-100 overflow-hidden border-b-2 border-gray-100">
+                          <img
+                            src={post.coverImage}
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
+                        </div>
+                      )}
+                      <div className="p-5 flex flex-col flex-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase mb-2">
+                          {new Date(post.createdAt).toLocaleDateString()}
+                        </span>
+                        <h4 className="font-bold text-lg leading-tight group-hover:text-[#A259FF] transition-colors mb-4">
+                          {post.title}
+                        </h4>
+                        <span className="mt-auto text-xs font-bold underline decoration-gray-300 underline-offset-4 group-hover:decoration-[#A259FF]">
+                          Read Article
+                        </span>
+                      </div>
+                    </article>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+      </main>
       <Footer />
     </div>
   );

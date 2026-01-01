@@ -6,7 +6,7 @@ import BlogImage from "../components/BlogImage";
 import Footer from "../components/Footer";
 
 // Force dynamic to handle search params
-export const revalidate = 60; // ✅ FAST: Caches page for 60 seconds
+export const dynamic = "force-dynamic";
 
 export default async function ExplorePage({ searchParams }) {
   await dbConnect();
@@ -14,7 +14,8 @@ export default async function ExplorePage({ searchParams }) {
   // 1. Handle Params
   const params = await searchParams;
   const query = params?.q || "";
-  const tagFilter = params?.tag || "";
+  // We no longer handle 'tag' here for filtering, we treat this page purely as search.
+  // But we still fetch all tags to show the cloud.
 
   // 2. Build Query
   let dbQuery = {};
@@ -25,11 +26,11 @@ export default async function ExplorePage({ searchParams }) {
         { summary: { $regex: query, $options: "i" } },
       ],
     };
-  } else if (tagFilter) {
-    dbQuery = { tags: tagFilter };
   }
 
   // 3. Fetch Data
+  // If no query, we show "Recent Posts" or nothing (your choice).
+  // Let's show all recent posts if empty so the page isn't blank.
   const blogs = await Blog.find(dbQuery).sort({ createdAt: -1 }).lean();
   const allTags = await Blog.distinct("tags");
 
@@ -38,10 +39,9 @@ export default async function ExplorePage({ searchParams }) {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col selection:bg-[#A259FF] selection:text-white">
-      {/* --- NAVBAR (Consistent with Home) --- */}
+      {/* NAVBAR */}
       <nav className="w-full border-b border-gray-100 py-4 px-4 md:px-8 sticky top-0 bg-white/80 backdrop-blur-md z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Logo */}
           <div className="flex items-center gap-3 select-none">
             <a
               href="https://sociials.com"
@@ -57,8 +57,6 @@ export default async function ExplorePage({ searchParams }) {
               Blog
             </Link>
           </div>
-
-          {/* Actions */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -71,19 +69,20 @@ export default async function ExplorePage({ searchParams }) {
       </nav>
 
       <main className="flex-1 max-w-5xl mx-auto px-4 md:px-6 py-16 w-full">
-        {/* --- SEARCH HEADER --- */}
+        {/* HEADER & SEARCH */}
         <div className="max-w-2xl mx-auto text-center mb-20">
           <h1 className="unbounded-900 text-4xl sm:text-6xl mb-8 tracking-tighter text-black">
-            Explore <span className="text-[#A259FF]">The Feed</span>
+            Search <span className="text-[#A259FF]">Archives</span>
           </h1>
 
-          {/* Search Form (Modern Editorial: Bold Black Border) */}
+          {/* Search Form */}
           <form action="/explore" method="GET" className="relative mb-8 group">
             <input
               type="text"
               name="q"
-              placeholder="Type keywords..."
+              placeholder="Type keywords (e.g., React, Tutorial)..."
               defaultValue={query}
+              autoFocus={true}
               className="w-full bg-white border-2 border-black rounded-xl p-4 pl-6 text-lg font-bold shadow-sm focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all placeholder:text-gray-400 text-black"
             />
             <button
@@ -106,27 +105,13 @@ export default async function ExplorePage({ searchParams }) {
             </button>
           </form>
 
-          {/* Tag Cloud (Clean Black Borders) */}
+          {/* Tag Cloud - NOW LINKS TO /TOPIC/ INSTEAD OF /EXPLORE/ */}
           <div className="flex flex-wrap justify-center gap-2">
-            <Link
-              href="/explore"
-              className={`px-4 py-1.5 rounded-lg border-2 border-black text-xs font-bold uppercase tracking-wide transition-all ${
-                !tagFilter && !query
-                  ? "bg-black text-white"
-                  : "bg-white text-black hover:bg-gray-100"
-              }`}
-            >
-              All
-            </Link>
             {allTags.map((tag) => (
               <Link
                 key={tag}
-                href={`/explore?tag=${tag}`}
-                className={`px-4 py-1.5 rounded-lg border-2 border-black text-xs font-bold uppercase tracking-wide transition-all ${
-                  tagFilter === tag
-                    ? "bg-[#A259FF] text-white border-[#A259FF]"
-                    : "bg-white text-black hover:border-[#A259FF] hover:text-[#A259FF]"
-                }`}
+                href={`/topic/${tag}`} // ✅ SEO FIX: Points to static topic pages
+                className="px-4 py-1.5 rounded-lg border-2 border-black text-xs font-bold uppercase tracking-wide bg-white text-black hover:bg-[#A259FF] hover:text-white hover:border-[#A259FF] transition-all"
               >
                 #{tag}
               </Link>
@@ -134,19 +119,15 @@ export default async function ExplorePage({ searchParams }) {
           </div>
         </div>
 
-        {/* --- RESULTS GRID --- */}
+        {/* RESULTS GRID */}
         <div className="mb-10 border-b border-black pb-4 flex items-baseline justify-between">
           <h2 className="font-black text-xl md:text-2xl text-black uppercase tracking-tight">
             {query ? (
               <span>
                 Results for <span className="text-[#A259FF]">"{query}"</span>
               </span>
-            ) : tagFilter ? (
-              <span>
-                Topic: <span className="text-[#A259FF]">#{tagFilter}</span>
-              </span>
             ) : (
-              "All Articles"
+              "All Posts"
             )}
           </h2>
           <span className="text-xs font-bold text-gray-500">
@@ -157,13 +138,13 @@ export default async function ExplorePage({ searchParams }) {
         {blogs.length === 0 ? (
           <div className="text-center py-24 border-2 border-dashed border-gray-300 rounded-[20px]">
             <p className="text-xl text-gray-500 font-bold mb-4">
-              Nothing found here.
+              Nothing matches that search.
             </p>
             <Link
               href="/explore"
               className="inline-block bg-black text-white px-6 py-2 rounded-lg font-bold hover:bg-[#A259FF] transition-colors"
             >
-              Clear Filters
+              Clear Search
             </Link>
           </div>
         ) : (
@@ -175,46 +156,27 @@ export default async function ExplorePage({ searchParams }) {
                 className="group block h-full outline-none"
               >
                 <article className="flex flex-col h-full bg-white border-2 border-black rounded-[20px] overflow-hidden shadow-[4px_4px_0px_#000] hover:shadow-[4px_4px_0px_#A259FF] hover:-translate-y-1 transition-all duration-300">
-                  {/* Thumbnail */}
                   <div className="w-full h-64 border-b-2 border-black relative bg-gray-50">
                     {blog.coverImage && (
                       <BlogImage src={blog.coverImage} alt={blog.title} />
                     )}
-                    {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
                   </div>
-
                   <div className="p-6 md:p-8 flex flex-col flex-grow">
-                    {/* Meta */}
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        {new Date(blog.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </div>
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                      {new Date(blog.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </div>
-
                     <h2 className="unbounded-900 text-2xl mb-3 leading-tight group-hover:text-[#A259FF] transition-colors">
                       {blog.title}
                     </h2>
-
                     <p className="text-gray-600 text-sm line-clamp-2 mb-6 leading-relaxed font-medium">
                       {blog.summary}
                     </p>
-
                     <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100 group-hover:border-black transition-colors">
-                      <div className="flex gap-2">
-                        {(blog.tags || []).slice(0, 2).map((t) => (
-                          <span
-                            key={t}
-                            className="text-[10px] font-black uppercase tracking-wider text-black border border-gray-200 px-2 py-1 rounded"
-                          >
-                            #{t}
-                          </span>
-                        ))}
-                      </div>
                       <span className="text-xs font-bold text-black group-hover:translate-x-1 transition-transform">
                         Read Article →
                       </span>

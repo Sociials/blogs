@@ -24,7 +24,12 @@ export default async function sitemap() {
       priority: 0.8, // Blogs are high priority
     };
   });
-
+  const tagEntries = tags.map((tag) => ({
+    url: `${baseUrl}/topic/${tag}`, // Clean URL
+    lastModified: new Date(),
+    changeFrequency: "daily",
+    priority: 0.7,
+  }));
   // 2. Add All Static Pages (Crucial for Indexing)
   const staticEntries = [
     {
@@ -71,5 +76,5 @@ export default async function sitemap() {
     },
   ];
 
-  return [...staticEntries, ...blogEntries];
+  return [...staticEntries, ...blogEntries, ...tagEntries];
 }

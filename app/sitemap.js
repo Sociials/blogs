@@ -12,7 +12,7 @@ export default async function sitemap() {
 
   // 1. Fetch Dynamic Blog Posts
   const blogs = await Blog.find({}, "slug updatedAt").lean();
-
+  const tags = await Blog.distinct("tags");
   const blogEntries = blogs.map((blog) => {
     const date = blog.updatedAt ? new Date(blog.updatedAt) : new Date();
     const validDate = isNaN(date.getTime()) ? new Date() : date;

@@ -40,7 +40,7 @@ export default function AdminPage() {
   const fetchUsers = async () => {
     try {
       setUsersLoading(true);
-      const res = fetch("/api/admin/users", {
+      const res = await fetch("/api/admin/users", {
         credentials: "include",
         cache: "no-store",
       });

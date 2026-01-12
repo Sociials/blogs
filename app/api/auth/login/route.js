@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 export async function POST(req) {
   const body = await req.json();
 
-  const workerRes = await fetch("http://127.0.0.1:8787/auth/login", {
+  const workerRes = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

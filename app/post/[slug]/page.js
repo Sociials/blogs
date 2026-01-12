@@ -39,8 +39,6 @@ async function getRelatedBlogs(currentSlug, tags) {
   if (tagArray.length === 0) return [];
 
   try {
-    // We fetch the main feed (which is highly cached) and filter locally
-    // This avoids needing a complex "related" endpoint on the backend for now.
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed`, {
       next: { revalidate: 60 },
     });
@@ -57,7 +55,6 @@ async function getRelatedBlogs(currentSlug, tags) {
           typeof post.tags === "string"
             ? post.tags.split(",")
             : post.tags || [];
-        // Check if at least one tag matches
         return postTags.some((t) => tagArray.includes(t.trim()));
       })
       .slice(0, 3);
@@ -87,6 +84,7 @@ export async function generateMetadata({ params }) {
       url: `https://blogs.sociials.com/post/${slug}`,
       type: "article",
       images: [blog.coverImage || "https://blogs.sociials.com/default-og.png"],
+      authors: [blog.authorName], // Added author to SEO metadata
     },
   };
 }
@@ -156,6 +154,15 @@ export default async function BlogPost({ params }) {
                 year: "numeric",
               })}
             </span>
+
+            {/* --- AUTHOR NAME ADDED HERE --- */}
+            {blog.authorName && (
+              <>
+                <span className="text-gray-300">•</span>
+                <span className="text-black">By {blog.authorName}</span>
+              </>
+            )}
+            {/* ----------------------------- */}
           </div>
           <h1 className="unbounded-900 text-4xl md:text-6xl leading-[1.1] mb-8 text-black">
             {blog.title}

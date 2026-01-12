@@ -1,10 +1,9 @@
-// app/api/blogs/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 type RouteContext = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ blogId: string }>;
 };
 
 async function proxyFormData(req: NextRequest, blogId: string) {
@@ -42,14 +41,14 @@ async function proxyFormData(req: NextRequest, blogId: string) {
 }
 
 export async function PUT(req: NextRequest, context: RouteContext) {
-  const { id } = await context.params;
+  const { blogId } = await context.params;
 
-  if (!id) {
+  if (!blogId) {
     return NextResponse.json(
       { error: "Missing blog ID" },
       { status: 400 }
     );
   }
 
-  return proxyFormData(req, id);
+  return proxyFormData(req, blogId);
 }

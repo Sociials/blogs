@@ -4,12 +4,12 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // params is **not a Promise**
 ) {
-  const { id } = params; // ❌ no await
+  const { id } = params; // ✅ no await
+  const body = await req.json();
 
   const cookie = req.headers.get("cookie") || "";
-  const body = await req.json();
 
   const res = await fetch(`${API_BASE}/admin/users/${id}`, {
     method: "PUT",
@@ -21,6 +21,5 @@ export async function PUT(
   });
 
   const data = await res.json();
-
   return NextResponse.json(data, { status: res.status });
 }

@@ -43,10 +43,15 @@ export default function ApplyPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F3F2EC] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#F3F2EC] p-4 font-sans">
       <div className="max-w-md w-full bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-8 rounded-xl">
-        <h1 className="unbounded-900 text-3xl mb-2">Join the Team</h1>
-        <p className="text-gray-500 mb-6">Apply to become a writer.</p>
+        {/* Added text-black to header */}
+        <h1 className="unbounded-900 text-3xl mb-2 text-black">
+          Join the Team
+        </h1>
+        <p className="text-gray-500 mb-6 font-bold text-sm">
+          Apply to become a writer.
+        </p>
 
         {error && (
           <div className="bg-red-100 text-red-600 p-3 mb-4 text-sm font-bold border-2 border-red-500 rounded">
@@ -56,36 +61,37 @@ export default function ApplyPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase mb-1">
+            <label className="block text-xs font-bold uppercase mb-1 text-gray-500">
               Full Name
             </label>
             <input
               name="name"
               required
               type="text"
-              className="w-full border-2 border-black p-2 rounded focus:outline-none focus:shadow-[2px_2px_0px_#A259FF]"
+              // Added bg-white and placeholder color
+              className="w-full bg-white border-2 border-black text-black p-2 rounded font-bold focus:outline-none focus:shadow-[2px_2px_0px_#A259FF]"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase mb-1">
+            <label className="block text-xs font-bold uppercase mb-1 text-gray-500">
               Email
             </label>
             <input
               name="email"
               required
               type="email"
-              className="w-full border-2 border-black p-2 rounded focus:outline-none focus:shadow-[2px_2px_0px_#A259FF]"
+              className="w-full bg-white border-2 border-black text-black p-2 rounded font-bold focus:outline-none focus:shadow-[2px_2px_0px_#A259FF]"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase mb-1">
+            <label className="block text-xs font-bold uppercase mb-1 text-gray-500">
               Password
             </label>
             <input
               name="password"
               required
               type="password"
-              className="w-full border-2 border-black p-2 rounded focus:outline-none focus:shadow-[2px_2px_0px_#A259FF]"
+              className="w-full bg-white border-2 border-black text-black p-2 rounded font-bold focus:outline-none focus:shadow-[2px_2px_0px_#A259FF]"
             />
           </div>
 
@@ -97,7 +103,7 @@ export default function ApplyPage() {
           </button>
         </form>
 
-        <p className="text-center mt-4 text-sm font-bold">
+        <p className="text-center mt-4 text-sm font-bold text-black">
           Already a writer?{" "}
           <Link href="/login" className="underline hover:text-[#A259FF]">
             Login here

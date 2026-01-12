@@ -54,7 +54,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F3F2EC] p-4 font-sans">
+    <div className="min-h-screen flex items-center justify-center text-b bg-[#F3F2EC] p-4 font-sans">
       <div className="max-w-md w-full bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-8 rounded-xl">
         <h1 className="unbounded-900 text-3xl mb-6 text-black">Writer Login</h1>
 
@@ -74,7 +74,7 @@ export default function LoginPage() {
               type="email"
               placeholder="you@sociials.com"
               required
-              className="w-full border-2 border-black p-3 rounded-lg font-bold focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all"
+              className="w-full border-2 border-black text-black   p-3 rounded-lg font-bold focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all"
             />
           </div>
 
@@ -87,7 +87,7 @@ export default function LoginPage() {
               type="password"
               placeholder="••••••••"
               required
-              className="w-full border-2 border-black p-3 rounded-lg font-bold focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all"
+              className="w-full border-2 border-black p-3 text-black rounded-lg font-bold focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all"
             />
           </div>
 

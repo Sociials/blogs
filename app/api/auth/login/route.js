@@ -1,23 +1,29 @@
-// app/api/auth/login/route.js
 import { NextResponse } from "next/server";
 
-export async function POST(request) {
-  const body = await request.json();
+export async function POST(req) {
+  const body = await req.json();
 
-  // Check against an Environment Variable (Add this to your .env.local file)
-  if (body.password === process.env.ADMIN_PASSWORD) {
-    const response = NextResponse.json({ success: true });
+  const workerRes = await fetch("http://127.0.0.1:8787/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
 
-    // Set a cookie named "admin_token" that lasts for 1 day
-    response.cookies.set("admin_token", "authenticated", {
-      httpOnly: true, // Client-side JS cannot read this (secure)
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24, // 1 day
-      path: "/",
-    });
+  const data = await workerRes.json();
 
-    return response;
+  // Forward response
+  const response = NextResponse.json(data, {
+    status: workerRes.status,
+  });
+
+  // 🔥 Forward Set-Cookie from Worker → Browser
+  const setCookie = workerRes.headers.get("set-cookie");
+  console.log("Set Cookie");
+  if (setCookie) {
+    response.headers.set("set-cookie", setCookie);
   }
 
-  return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+  return response;
 }

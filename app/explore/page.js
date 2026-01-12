@@ -1,41 +1,60 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import dbConnect from "../../lib/db";
-import Blog from "../../model/Blog";
+import { cookies } from "next/headers"; // To check auth status
 import BlogImage from "../components/BlogImage";
 import Footer from "../components/Footer";
 
-// Force dynamic to handle search params
+// ✅ Force dynamic rendering so search params work
 export const dynamic = "force-dynamic";
 
-export default async function ExplorePage({ searchParams }) {
-  await dbConnect();
-
-  // 1. Handle Params
-  const params = await searchParams;
-  const query = params?.q || "";
-  // We no longer handle 'tag' here for filtering, we treat this page purely as search.
-  // But we still fetch all tags to show the cloud.
-
-  // 2. Build Query
-  let dbQuery = {};
-  if (query) {
-    dbQuery = {
-      $or: [
-        { title: { $regex: query, $options: "i" } },
-        { summary: { $regex: query, $options: "i" } },
-      ],
-    };
+// Helper: Fetch all blogs from Worker
+async function getAllBlogs() {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed`, {
+      cache: "no-store", // Always fetch fresh data for search
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (error) {
+    console.error("Explore fetch error:", error);
+    return [];
   }
+}
 
-  // 3. Fetch Data
-  // If no query, we show "Recent Posts" or nothing (your choice).
-  // Let's show all recent posts if empty so the page isn't blank.
-  const blogs = await Blog.find(dbQuery).sort({ createdAt: -1 }).lean();
-  const allTags = await Blog.distinct("tags");
+export default async function ExplorePage({ searchParams }) {
+  // 1. Fetch All Data
+  const allBlogs = await getAllBlogs();
 
+  // 2. Handle Search Query
+  // Note: Since 'searchParams' is a promise in newer Next.js versions, we await it.
+  const params = await searchParams;
+  const query = (params?.q || "").toLowerCase();
+
+  // 3. Filter Blogs (Client-side logic running on Server)
+  const filteredBlogs = query
+    ? allBlogs.filter((blog) => {
+        const titleMatch = blog.title?.toLowerCase().includes(query);
+        const summaryMatch = blog.summary?.toLowerCase().includes(query);
+        return titleMatch || summaryMatch;
+      })
+    : allBlogs;
+
+  // 4. Extract Unique Tags
+  // D1 stores tags as a string "tech, react", so we split and flatten them.
+  const allTags = [
+    ...new Set(
+      allBlogs.flatMap((blog) => {
+        const tagData = blog.tags;
+        if (!tagData) return [];
+        return Array.isArray(tagData)
+          ? tagData
+          : tagData.split(",").map((t) => t.trim());
+      })
+    ),
+  ].sort(); // Alphabetical sort
+
+  // 5. Check Auth (Cookie based)
   const cookieStore = await cookies();
-  const isAdmin = cookieStore.has("admin_token");
+  const isLoggedIn = cookieStore.has("token"); // Check if 'token' cookie exists
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col selection:bg-[#A259FF] selection:text-white">
@@ -63,6 +82,18 @@ export default async function ExplorePage({ searchParams }) {
               className="text-xs font-bold bg-white text-black border-2 border-black px-5 py-2 rounded-full hover:bg-black hover:text-white transition-all"
             >
               ← Home
+            </Link>
+
+            {/* Conditional Dashboard Link */}
+            <Link
+              href={isLoggedIn ? "/admin" : "/login"}
+              className={`text-xs font-bold px-5 py-2 rounded-full border-2 border-transparent transition-all ${
+                isLoggedIn
+                  ? "bg-[#A259FF] text-white hover:bg-black"
+                  : "text-gray-500 hover:text-black"
+              }`}
+            >
+              {isLoggedIn ? "Dashboard" : "Login"}
             </Link>
           </div>
         </div>
@@ -105,12 +136,12 @@ export default async function ExplorePage({ searchParams }) {
             </button>
           </form>
 
-          {/* Tag Cloud - NOW LINKS TO /TOPIC/ INSTEAD OF /EXPLORE/ */}
+          {/* Tag Cloud */}
           <div className="flex flex-wrap justify-center gap-2">
             {allTags.map((tag) => (
               <Link
                 key={tag}
-                href={`/topic/${tag}`} // ✅ SEO FIX: Points to static topic pages
+                href={`/topic/${tag}`}
                 className="px-4 py-1.5 rounded-lg border-2 border-black text-xs font-bold uppercase tracking-wide bg-white text-black hover:bg-[#A259FF] hover:text-white hover:border-[#A259FF] transition-all"
               >
                 #{tag}
@@ -131,11 +162,11 @@ export default async function ExplorePage({ searchParams }) {
             )}
           </h2>
           <span className="text-xs font-bold text-gray-500">
-            {blogs.length} Found
+            {filteredBlogs.length} Found
           </span>
         </div>
 
-        {blogs.length === 0 ? (
+        {filteredBlogs.length === 0 ? (
           <div className="text-center py-24 border-2 border-dashed border-gray-300 rounded-[20px]">
             <p className="text-xl text-gray-500 font-bold mb-4">
               Nothing matches that search.
@@ -149,9 +180,9 @@ export default async function ExplorePage({ searchParams }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {blogs.map((blog) => (
+            {filteredBlogs.map((blog) => (
               <Link
-                key={blog._id}
+                key={blog.id} // D1 uses 'id', check if your schema is id or _id
                 href={`/post/${blog.slug}`}
                 className="group block h-full outline-none"
               >

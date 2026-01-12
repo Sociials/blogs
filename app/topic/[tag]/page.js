@@ -1,13 +1,68 @@
 import Link from "next/link";
-import dbConnect from "../../../lib/db";
-import Blog from "../../../model/Blog";
+import { notFound } from "next/navigation";
 import BlogImage from "../../components/BlogImage";
 import Footer from "../../components/Footer";
-import { notFound } from "next/navigation";
 
-// 1. SEO METADATA (Crucial)
+// ✅ SEO CONFIG
+export const revalidate = 60; // Regenerate page every 60 seconds
+export const dynamicParams = true;
+
+// --- DATA FETCHERS ---
+
+// 1. Fetch All Blogs (Cached)
+async function getFeed() {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (error) {
+    console.error("Feed fetch error:", error);
+    return [];
+  }
+}
+
+// 2. Extract All Unique Tags
+async function getAllTags() {
+  const blogs = await getFeed();
+  const tags = new Set();
+
+  blogs.forEach((blog) => {
+    // Handle D1 string format "tag1, tag2"
+    const tagList =
+      typeof blog.tags === "string"
+        ? blog.tags.split(",").map((t) => t.trim())
+        : blog.tags || [];
+
+    tagList.forEach((t) => {
+      if (t) tags.add(t);
+    });
+  });
+
+  return Array.from(tags).sort();
+}
+
+// 3. Filter Blogs by Specific Tag
+async function getBlogsByTag(tag) {
+  const allBlogs = await getFeed();
+  const decodedTag = decodeURIComponent(tag).toLowerCase();
+
+  return allBlogs.filter((blog) => {
+    const blogTags =
+      typeof blog.tags === "string"
+        ? blog.tags.split(",").map((t) => t.trim().toLowerCase())
+        : (blog.tags || []).map((t) => t.toLowerCase());
+
+    return blogTags.includes(decodedTag);
+  });
+}
+
+// --- NEXT.JS PAGE CONFIG ---
+
+// Generate Metadata for SEO
 export async function generateMetadata({ params }) {
-  const { tag } = await params;
+  const { tag } = await params; // Await params in Next.js 15+
   const decodedTag = decodeURIComponent(tag);
 
   return {
@@ -23,28 +78,23 @@ export async function generateMetadata({ params }) {
   };
 }
 
-// 2. FORCE STATIC GENERATION (Optional but recommended for speed)
-// This tells Next.js to pre-build pages for your most popular tags
+// Generate Static Paths (Pre-build popular tags)
 export async function generateStaticParams() {
-  await dbConnect();
-  const tags = await Blog.distinct("tags");
+  const tags = await getAllTags();
   return tags.map((tag) => ({ tag: tag }));
 }
 
-export const revalidate = 60;
+// --- MAIN COMPONENT ---
 
 export default async function TagPage({ params }) {
-  await dbConnect();
   const { tag } = await params;
   const decodedTag = decodeURIComponent(tag);
 
-  // Fetch blogs ONLY for this tag
-  const blogs = await Blog.find({ tags: decodedTag })
-    .sort({ createdAt: -1 })
-    .lean();
-
-  // Fetch all tags for the sidebar/cloud
-  const allTags = await Blog.distinct("tags");
+  // Parallel Data Fetching
+  const [blogs, allTags] = await Promise.all([
+    getBlogsByTag(tag),
+    getAllTags(),
+  ]);
 
   if (blogs.length === 0) {
     return notFound();
@@ -94,7 +144,7 @@ export default async function TagPage({ params }) {
             {allTags.map((t) => (
               <Link
                 key={t}
-                href={`/topic/${t}`} // Linking to CLEAN URLs
+                href={`/topic/${t}`}
                 className={`px-4 py-1.5 rounded-lg border-2 border-black text-xs font-bold uppercase tracking-wide transition-all ${
                   t === decodedTag
                     ? "bg-[#A259FF] text-white border-[#A259FF]"
@@ -111,7 +161,7 @@ export default async function TagPage({ params }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {blogs.map((blog) => (
             <Link
-              key={blog._id}
+              key={blog.id} // D1 uses 'id', not '_id'
               href={`/post/${blog.slug}`}
               className="group block h-full outline-none"
             >
@@ -120,6 +170,8 @@ export default async function TagPage({ params }) {
                   {blog.coverImage && (
                     <BlogImage src={blog.coverImage} alt={blog.title} />
                   )}
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
                 </div>
                 <div className="p-6 md:p-8 flex flex-col flex-grow">
                   <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">

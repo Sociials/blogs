@@ -1,42 +1,78 @@
-import dbConnect from "../../../lib/db";
-import Blog from "../../../model/Blog";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Footer from "../../components/Footer";
 
 // ✅ SEO CONFIG
-export const revalidate = 60;
+export const revalidate = 60; // ISR: Cache for 60s
 export const dynamicParams = true;
 
+// --- DATA FETCHERS ---
+
+// 1. Fetch Single Blog by Slug
 async function getBlog(slug) {
-  await dbConnect();
-  const blog = await Blog.findOne({ slug: slug }).lean();
-  if (!blog) return null;
-  return JSON.parse(JSON.stringify(blog));
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/blogs/${slug}`,
+      {
+        next: { revalidate: 60 },
+      }
+    );
+
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching blog:", error);
+    return null;
+  }
 }
 
-// 🆕 NEW: Fetch 3 related posts based on tags (excluding current one)
+// 2. Fetch Related Blogs (Client-side filtering of the main feed)
 async function getRelatedBlogs(currentSlug, tags) {
-  await dbConnect();
-  if (!tags || tags.length === 0) return [];
+  if (!tags) return [];
 
-  const related = await Blog.find({
-    tags: { $in: tags }, // Find posts with matching tags
-    slug: { $ne: currentSlug }, // Exclude current post
-  })
-    .sort({ createdAt: -1 })
-    .limit(3) // Get top 3
-    .select("title slug coverImage createdAt") // Only fetch needed fields
-    .lean();
+  // Convert tag string (D1 format "tag1, tag2") to array if needed
+  const tagArray = Array.isArray(tags)
+    ? tags
+    : tags.split(",").map((t) => t.trim());
 
-  return JSON.parse(JSON.stringify(related));
+  if (tagArray.length === 0) return [];
+
+  try {
+    // We fetch the main feed (which is highly cached) and filter locally
+    // This avoids needing a complex "related" endpoint on the backend for now.
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed`, {
+      next: { revalidate: 60 },
+    });
+
+    if (!res.ok) return [];
+
+    const allBlogs = await res.json();
+
+    // Filter: Match tags, exclude current post, take top 3
+    const related = allBlogs
+      .filter((post) => {
+        if (post.slug === currentSlug) return false;
+        const postTags =
+          typeof post.tags === "string"
+            ? post.tags.split(",")
+            : post.tags || [];
+        // Check if at least one tag matches
+        return postTags.some((t) => tagArray.includes(t.trim()));
+      })
+      .slice(0, 3);
+
+    return related;
+  } catch (error) {
+    return [];
+  }
 }
 
-// ... generateMetadata function (keep the one from previous answer) ...
+// --- SEO METADATA ---
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const blog = await getBlog(slug);
+
   if (!blog) return { title: "Post Not Found" };
 
   return {
@@ -45,28 +81,44 @@ export async function generateMetadata({ params }) {
     alternates: {
       canonical: `https://blogs.sociials.com/post/${slug}`,
     },
-    // ... rest of metadata ...
+    openGraph: {
+      title: blog.title,
+      description: blog.summary,
+      url: `https://blogs.sociials.com/post/${slug}`,
+      type: "article",
+      images: [blog.coverImage || "https://blogs.sociials.com/default-og.png"],
+    },
   };
 }
 
+// --- MAIN COMPONENT ---
 export default async function BlogPost({ params }) {
   const { slug } = await params;
   const blog = await getBlog(slug);
 
   if (!blog) notFound();
 
-  // 🆕 Fetch Related Posts
   const relatedBlogs = await getRelatedBlogs(slug, blog.tags);
 
+  // Handle Legacy Google Drive Images + New Cloudinary Images
   const displayImage = blog.coverImage?.includes("drive.google.com")
     ? `https://drive.google.com/uc?export=view&id=${
         blog.coverImage.split("/d/")[1].split("/")[0]
       }`
     : blog.coverImage;
 
+  // Handle Tags (Convert string to array for display)
+  const displayTags =
+    typeof blog.tags === "string"
+      ? blog.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : blog.tags || [];
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col selection:bg-[#A259FF] selection:text-white">
-      {/* ... Navbar (Keep existing) ... */}
+      {/* NAVBAR */}
       <nav className="w-full border-b border-gray-100 py-4 px-4 md:px-8 sticky top-0 bg-white/80 backdrop-blur-md z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3 select-none">
@@ -94,7 +146,7 @@ export default async function BlogPost({ params }) {
       </nav>
 
       <main className="flex-1 w-full">
-        {/* ... Header & Hero Image (Keep existing) ... */}
+        {/* HEADER */}
         <header className="max-w-4xl mx-auto px-6 pt-16 pb-12 text-center">
           <div className="flex justify-center items-center gap-3 mb-6 text-sm font-bold uppercase tracking-widest text-gray-500">
             <span>
@@ -113,6 +165,7 @@ export default async function BlogPost({ params }) {
           </p>
         </header>
 
+        {/* HERO IMAGE */}
         {displayImage && (
           <div className="max-w-5xl mx-auto px-4 md:px-6 mb-16">
             <div className="w-full h-auto rounded-[20px] overflow-hidden border-2 border-black shadow-[4px_4px_0px_#000] bg-gray-100">
@@ -125,9 +178,9 @@ export default async function BlogPost({ params }) {
           </div>
         )}
 
+        {/* CONTENT */}
         <article className="max-w-3xl mx-auto px-6 pb-10">
-          <div className="prose prose-lg md:prose-xl max-w-none text-gray-800 ... (keep your classes)">
-            {/* 🆕 OPTIMIZED MARKDOWN LINKS */}
+          <div className="prose prose-lg md:prose-xl max-w-none text-gray-800 prose-headings:font-black prose-headings:text-black prose-a:text-[#A259FF] prose-a:no-underline prose-img:rounded-xl prose-img:border-2 prose-img:border-black prose-img:shadow-[4px_4px_0px_#000]">
             <ReactMarkdown
               components={{
                 a: ({ href, children }) => {
@@ -161,11 +214,11 @@ export default async function BlogPost({ params }) {
             </ReactMarkdown>
           </div>
 
-          {/* Tags Footer (Keep existing) */}
-          {(blog.tags || []).length > 0 && (
+          {/* TAGS FOOTER */}
+          {displayTags.length > 0 && (
             <div className="mt-16 pt-8 border-t border-gray-200">
               <div className="flex flex-wrap gap-2">
-                {blog.tags.map((tag) => (
+                {displayTags.map((tag) => (
                   <Link
                     key={tag}
                     href={`/topic/${tag}`}
@@ -179,7 +232,7 @@ export default async function BlogPost({ params }) {
           )}
         </article>
 
-        {/* 🆕 READ NEXT SECTION (Internal Linking Booster) */}
+        {/* RELATED POSTS */}
         {relatedBlogs.length > 0 && (
           <section className="bg-gray-50 border-t border-gray-200 py-16">
             <div className="max-w-5xl mx-auto px-6">
@@ -192,13 +245,12 @@ export default async function BlogPost({ params }) {
                     className="group block h-full"
                   >
                     <article className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-black hover:shadow-[4px_4px_0px_#A259FF] hover:-translate-y-1 transition-all h-full flex flex-col">
-                      {/* Optional Mini Thumbnail */}
                       {post.coverImage && (
                         <div className="h-40 bg-gray-100 overflow-hidden border-b-2 border-gray-100">
                           <img
                             src={post.coverImage}
                             className="w-full h-full object-cover"
-                            alt=""
+                            alt={post.title}
                           />
                         </div>
                       )}
@@ -221,6 +273,7 @@ export default async function BlogPost({ params }) {
           </section>
         )}
       </main>
+
       <Footer />
     </div>
   );

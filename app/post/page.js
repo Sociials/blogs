@@ -1,6 +1,6 @@
 import Link from "next/link";
-import BlogImage from "./components/BlogImage"; // Ensure you have this component
-import Footer from "./components/Footer";
+import BlogImage from "../components/BlogImage"; // Ensure you have this component
+import Footer from "../components/Footer";
 
 // ✅ ISR: Cache this page for 60 seconds, then regenerate.
 // This makes the page load instantly from the Edge.

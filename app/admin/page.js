@@ -76,15 +76,12 @@ export default function AdminPage() {
     )
       return;
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/users/${id}`,
-        {
-          method: "PUT",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        }
-      );
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
       if (res.ok) {
         fetchUsers(); // refresh list
       }
@@ -184,15 +181,9 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/blogs/${editingId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const res = await fetch(`/api/creator/blogs/${editingId}`, {
+        method: "DELETE",
+      });
 
       if (res.ok) {
         setMessage({ text: "🗑️ Blog Deleted", type: "success" });
@@ -203,6 +194,7 @@ export default function AdminPage() {
         setMessage({ text: `❌ Error: ${data.error}`, type: "error" });
       }
     } catch (error) {
+      console.log(error);
       setMessage({ text: "❌ Delete Failed", type: "error" });
     }
     setLoading(false);

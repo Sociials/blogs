@@ -22,9 +22,12 @@ export default function Footer() {
 
             {/* Socials - Clean & Simple */}
             <div className="flex gap-4">
-              <SocialLink href="#" icon="TW" />
-              <SocialLink href="#" icon="GH" />
-              <SocialLink href="#" icon="IN" />
+              <SocialLink href="https://discord.gg/SNJfYQqwxa" icon="DW" />
+
+              <SocialLink
+                href="https://www.instagram.com/besociials/"
+                icon="IN"
+              />
             </div>
           </div>
 

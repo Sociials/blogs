@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import MarkdownToolbar from "../components/MarkdownToolbar";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  // New: Image Preview State
+  // Image Preview State
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
 
@@ -30,13 +31,17 @@ export default function AdminPage() {
   const [slugEdited, setSlugEdited] = useState(false);
 
   // Tabs State
-  const [activeSection, setActiveSection] = useState("posts"); // 'posts' | 'users'
+  const [activeSection, setActiveSection] = useState("posts");
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
-  // --- 0. Auth Check on Load ---
+  // Mobile sidebar toggle
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
-  // --- API FUNCTIONS (Kept exactly as you provided) ---
+  // Textarea ref for MarkdownToolbar
+  const textareaRef = useRef(null);
+
+  // --- API FUNCTIONS ---
   const fetchUsers = async () => {
     try {
       setUsersLoading(true);
@@ -83,7 +88,7 @@ export default function AdminPage() {
         body: JSON.stringify({ status }),
       });
       if (res.ok) {
-        fetchUsers(); // refresh list
+        fetchUsers();
       }
     } catch (err) {
       console.error("Failed to update user", err);
@@ -138,18 +143,16 @@ export default function AdminPage() {
     let res;
     try {
       if (editingId) {
-        console.log("IN edit mode");
         res = await fetch(`/api/blogs/${editingId}`, {
           method: "PUT",
           body: submitData,
           credentials: "include",
         });
-        console.log("res", res);
       } else {
         res = await fetch("/api/blogs", {
           method: "POST",
-          body: submitData, // FormData
-          credentials: "include", // important for cookies
+          body: submitData,
+          credentials: "include",
         });
       }
 
@@ -212,6 +215,7 @@ export default function AdminPage() {
     setImagePreview(blog.coverImage);
     setImageFile(null);
     setSlugEdited(true);
+    setShowMobileSidebar(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
     setMessage({ text: "", type: "" });
   };
@@ -249,65 +253,74 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#F3F2EC] font-sans text-black">
       {/* --- NAVBAR --- */}
-      <nav className="bg-white border-b-2 border-black sticky top-0 z-50 px-6 py-4 flex justify-between items-center h-16">
-        <h1 className="unbounded-900 text-xl md:text-2xl font-black">
-          Admin <span className="text-[#A259FF]">Panel</span>
-        </h1>
+      <nav className="bg-white border-b-2 border-black sticky top-0 z-50 px-4 md:px-6">
+        {/* Top row: Logo + Logout */}
+        <div className="flex justify-between items-center h-14">
+          <h1 className="unbounded-900 text-lg md:text-2xl font-black">
+            Admin <span className="text-[#A259FF]">Panel</span>
+          </h1>
+          <button
+            onClick={handleLogout}
+            className="text-xs font-bold border-2 border-black px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:bg-red-50 hover:text-red-600 transition-all"
+          >
+            Logout
+          </button>
+        </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-full border border-gray-300">
+        {/* Bottom row: Navigation Tabs */}
+        <div className="flex gap-2 pb-2 -mt-1">
           <button
             onClick={() => setActiveSection("posts")}
-            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
-              activeSection === "posts"
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${activeSection === "posts"
                 ? "bg-black text-white shadow-md"
-                : "text-gray-500 hover:text-black"
-            }`}
+                : "bg-gray-100 text-gray-500 hover:text-black"
+              }`}
           >
             📝 Posts
           </button>
-
           <button
             onClick={() => setActiveSection("users")}
-            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
-              activeSection === "users"
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${activeSection === "users"
                 ? "bg-black text-white shadow-md"
-                : "text-gray-500 hover:text-black"
-            }`}
+                : "bg-gray-100 text-gray-500 hover:text-black"
+              }`}
           >
             👥 Users
           </button>
         </div>
-
-        <button
-          onClick={handleLogout}
-          className="text-xs font-bold border-2 border-black px-4 py-2 rounded-full hover:bg-red-50 hover:text-red-600 transition-all"
-        >
-          Logout
-        </button>
       </nav>
 
       {/* --- CONTENT AREA --- */}
-      <div className="max-w-[1600px] mx-auto p-4 md:p-6">
+      <div className="max-w-[1600px] mx-auto p-3 md:p-6">
         {/* CONDITIONAL RENDERING: POSTS VS USERS */}
         {activeSection === "posts" ? (
           /* ================= POSTS VIEW ================= */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 md:gap-6 items-start">
+            {/* MOBILE: Toggle Post List Button */}
+            <button
+              onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+              className="lg:hidden w-full py-3 rounded-xl border-2 border-black font-bold text-sm bg-white shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2"
+            >
+              {showMobileSidebar ? "✕ Close Post List" : `📋 Browse Posts (${filteredBlogs.length})`}
+            </button>
+
             {/* LEFT SIDEBAR: BLOG LIST */}
-            <div className="lg:col-span-3 flex flex-col gap-4 lg:h-[calc(100vh-100px)] lg:sticky lg:top-24">
+            <div
+              className={`w-full lg:col-span-3 flex flex-col gap-4 lg:h-[calc(100vh-120px)] lg:sticky lg:top-24 ${showMobileSidebar ? "block" : "hidden lg:flex"
+                }`}
+            >
               <button
                 onClick={handleReset}
-                className={`w-full py-4 rounded-[15px] border-2 border-black font-bold text-lg shadow-[4px_4px_0px_#000] transition-all active:translate-y-1 hover:shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2 ${
-                  editingId === null
+                className={`w-full py-3 md:py-4 rounded-[15px] border-2 border-black font-bold text-base md:text-lg shadow-[4px_4px_0px_#000] transition-all active:translate-y-1 hover:shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2 ${editingId === null
                     ? "bg-[#A259FF] text-white"
                     : "bg-white hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 <span>+</span> Create New Post
               </button>
 
-              <div className="bg-white rounded-[20px] border-2 border-black flex-1 flex flex-col overflow-hidden shadow-[4px_4px_0px_#000]">
-                <div className="p-4 border-b-2 border-gray-100">
+              <div className="bg-white rounded-[20px] border-2 border-black flex-1 flex flex-col overflow-hidden shadow-[4px_4px_0px_#000] max-h-[50vh] lg:max-h-none">
+                <div className="p-3 md:p-4 border-b-2 border-gray-100">
                   <input
                     type="text"
                     placeholder="🔍 Search posts..."
@@ -327,11 +340,10 @@ export default function AdminPage() {
                       <div
                         key={blog.id}
                         onClick={() => handleEdit(blog)}
-                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:translate-x-1 ${
-                          editingId === blog.id
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:translate-x-1 ${editingId === blog.id
                             ? "bg-[#F3F2EC] border-black shadow-[2px_2px_0px_#A259FF]"
                             : "bg-white border-transparent hover:border-gray-200"
-                        }`}
+                          }`}
                       >
                         <h4 className="font-bold text-sm line-clamp-2 leading-tight">
                           {blog.title}
@@ -352,15 +364,14 @@ export default function AdminPage() {
             {/* RIGHT AREA: EDITOR */}
             <form
               onSubmit={handleSubmit}
-              className="lg:col-span-9 grid grid-cols-1 xl:grid-cols-3 gap-6"
+              className="w-full lg:col-span-9 flex flex-col xl:grid xl:grid-cols-3 gap-4 md:gap-6"
             >
               {message.text && (
                 <div
-                  className={`xl:col-span-3 p-4 rounded-xl border-2 border-black font-bold flex justify-between items-center shadow-[4px_4px_0px_#000] ${
-                    message.type === "error"
+                  className={`xl:col-span-3 p-3 md:p-4 rounded-xl border-2 border-black font-bold flex justify-between items-center shadow-[4px_4px_0px_#000] text-sm md:text-base ${message.type === "error"
                       ? "bg-red-100 text-red-900"
                       : "bg-[#15F5BA] text-black"
-                  }`}
+                    }`}
                 >
                   <span>{message.text}</span>
                   <button
@@ -374,8 +385,9 @@ export default function AdminPage() {
               )}
 
               {/* EDITOR MAIN */}
-              <div className="xl:col-span-2 space-y-6">
-                <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000]">
+              <div className="xl:col-span-2 space-y-4 md:space-y-6 order-1">
+                {/* Title Card */}
+                <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000]">
                   <div className="flex justify-between items-center mb-2">
                     <label className={labelClass}>
                       {editingId ? "Editing Post" : "New Post Title"}
@@ -391,15 +403,16 @@ export default function AdminPage() {
                     required
                     placeholder="Enter title..."
                     value={formData.title}
-                    className="w-full text-2xl font-bold border-b-2 border-gray-200 focus:border-[#A259FF] outline-none py-2 transition-colors"
+                    className="w-full text-xl md:text-2xl font-bold border-b-2 border-gray-200 focus:border-[#A259FF] outline-none py-2 transition-colors"
                     onChange={(e) =>
                       setFormData({ ...formData, title: e.target.value })
                     }
                   />
                 </div>
 
-                <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] flex flex-col min-h-[600px]">
-                  <div className="flex items-center justify-between mb-4 border-b-2 border-gray-100 pb-2">
+                {/* Content Editor Card */}
+                <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] flex flex-col min-h-[400px] md:min-h-[600px]">
+                  <div className="flex items-center justify-between mb-3 border-b-2 border-gray-100 pb-2">
                     <label className={labelClass + " mb-0"}>
                       Content (Markdown)
                     </label>
@@ -407,22 +420,20 @@ export default function AdminPage() {
                       <button
                         type="button"
                         onClick={() => setActiveTab("write")}
-                        className={`px-4 py-1 rounded-md text-sm font-bold transition-all ${
-                          activeTab === "write"
+                        className={`px-3 md:px-4 py-1 rounded-md text-xs md:text-sm font-bold transition-all ${activeTab === "write"
                             ? "bg-white shadow-sm"
                             : "text-gray-500"
-                        }`}
+                          }`}
                       >
                         Write
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveTab("preview")}
-                        className={`px-4 py-1 rounded-md text-sm font-bold transition-all ${
-                          activeTab === "preview"
+                        className={`px-3 md:px-4 py-1 rounded-md text-xs md:text-sm font-bold transition-all ${activeTab === "preview"
                             ? "bg-white shadow-sm"
                             : "text-gray-500"
-                        }`}
+                          }`}
                       >
                         Preview
                       </button>
@@ -430,17 +441,27 @@ export default function AdminPage() {
                   </div>
 
                   {activeTab === "write" ? (
-                    <textarea
-                      required
-                      placeholder="# Hello World..."
-                      value={formData.content}
-                      className="flex-1 w-full resize-none outline-none font-mono text-sm leading-relaxed min-h-[400px]"
-                      onChange={(e) =>
-                        setFormData({ ...formData, content: e.target.value })
-                      }
-                    />
+                    <div className="flex-1 flex flex-col">
+                      <MarkdownToolbar
+                        textareaRef={textareaRef}
+                        content={formData.content}
+                        setContent={(val) =>
+                          setFormData({ ...formData, content: val })
+                        }
+                      />
+                      <textarea
+                        ref={textareaRef}
+                        required
+                        placeholder="# Hello World..."
+                        value={formData.content}
+                        className="flex-1 w-full resize-none outline-none font-mono text-sm leading-relaxed min-h-[300px] md:min-h-[400px] p-3 border-2 border-gray-200 border-t-0 rounded-b-xl focus:border-[#A259FF] transition-colors"
+                        onChange={(e) =>
+                          setFormData({ ...formData, content: e.target.value })
+                        }
+                      />
+                    </div>
                   ) : (
-                    <div className="flex-1 w-full overflow-y-auto p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 min-h-[400px]">
+                    <div className="flex-1 w-full overflow-y-auto p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 min-h-[300px] md:min-h-[400px]">
                       {formData.content ? (
                         <article className="prose prose-sm lg:prose-base max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-img:rounded-xl">
                           <ReactMarkdown>{formData.content}</ReactMarkdown>
@@ -456,21 +477,22 @@ export default function AdminPage() {
               </div>
 
               {/* EDITOR SIDEBAR */}
-              <div className="space-y-6 xl:sticky xl:top-24 h-fit">
-                <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[8px_8px_0px_#000]">
+              <div className="space-y-4 md:space-y-6 xl:sticky xl:top-24 h-fit order-2">
+                {/* Publish Card */}
+                <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[8px_8px_0px_#000]">
                   <h3 className="font-black text-lg mb-4">
                     {editingId ? "Update Post" : "Publish Post"}
                   </h3>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-black text-white font-bold text-lg py-3 rounded-xl border-2 border-black hover:bg-[#A259FF] hover:shadow-[4px_4px_0px_#000] hover:-translate-y-1 active:translate-y-0 transition-all disabled:opacity-50"
+                    className="w-full bg-black text-white font-bold text-base md:text-lg py-3 rounded-xl border-2 border-black hover:bg-[#A259FF] hover:shadow-[4px_4px_0px_#000] hover:-translate-y-1 active:translate-y-0 transition-all disabled:opacity-50"
                   >
                     {loading
                       ? "Processing..."
                       : editingId
-                      ? "Save Changes"
-                      : "Publish Now"}
+                        ? "Save Changes"
+                        : "Publish Now"}
                   </button>
                   {editingId && (
                     <button
@@ -483,7 +505,8 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                <div className="bg-white p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] space-y-4">
+                {/* Meta Fields Card */}
+                <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] space-y-4">
                   <div>
                     <label className={labelClass}>Slug</label>
                     <input
@@ -523,9 +546,9 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label className={labelClass}>Cover Image</label>
-                    <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors">
-                      <p className="text-xs text-gray-500 font-bold">
-                        {imageFile ? imageFile.name : "Click to Upload New"}
+                    <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 hover:border-[#A259FF] transition-colors group">
+                      <p className="text-xs text-gray-500 font-bold group-hover:text-[#A259FF]">
+                        {imageFile ? imageFile.name : "📷 Click to Upload"}
                       </p>
                       <input
                         type="file"
@@ -535,7 +558,7 @@ export default function AdminPage() {
                       />
                     </div>
                     {imagePreview && (
-                      <div className="mt-3 rounded-lg border-2 border-black overflow-hidden h-40 w-full bg-gray-100 relative group">
+                      <div className="mt-3 rounded-lg border-2 border-black overflow-hidden h-32 md:h-40 w-full bg-gray-100 relative group">
                         <img
                           src={imagePreview}
                           alt="Preview"
@@ -552,8 +575,8 @@ export default function AdminPage() {
           /* ================= USERS VIEW ================= */
           <div className="max-w-[1200px] mx-auto">
             <div className="bg-white border-2 border-black rounded-[20px] shadow-[8px_8px_0px_#000] overflow-hidden">
-              <div className="p-6 border-b-2 border-black bg-gray-50 flex justify-between items-center">
-                <h2 className="unbounded-900 text-2xl font-black">
+              <div className="p-4 md:p-6 border-b-2 border-black bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <h2 className="unbounded-900 text-xl md:text-2xl font-black">
                   User Management
                 </h2>
                 <button
@@ -570,7 +593,53 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
+                  {/* Mobile: Card layout */}
+                  <div className="sm:hidden divide-y divide-gray-100">
+                    {users.map((u) => (
+                      <div key={u.id} className="p-4 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-bold">{u.name}</p>
+                            <p className="text-xs text-gray-500 font-mono">{u.email}</p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-bold uppercase border ${u.status === "active"
+                                ? "bg-green-100 text-green-700 border-green-200"
+                                : u.status === "banned"
+                                  ? "bg-red-100 text-red-700 border-red-200"
+                                  : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                              }`}
+                          >
+                            {u.status}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold uppercase">
+                            {u.role}
+                          </span>
+                          {u.status !== "active" && (
+                            <button
+                              onClick={() => updateUserStatus(u.id, "active")}
+                              className="px-3 py-1 text-xs font-bold border-2 border-black bg-[#15F5BA] rounded hover:shadow-[2px_2px_0px_#000] transition-all"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {u.status !== "banned" && (
+                            <button
+                              onClick={() => updateUserStatus(u.id, "banned")}
+                              className="px-3 py-1 text-xs font-bold border-2 border-gray-300 bg-white text-red-500 rounded hover:border-red-500 hover:bg-red-50 transition-all"
+                            >
+                              Ban
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop: Table layout */}
+                  <table className="w-full text-sm text-left hidden sm:table">
                     <thead className="bg-black text-white uppercase tracking-wider text-xs">
                       <tr>
                         <th className="p-4">Name</th>
@@ -597,13 +666,12 @@ export default function AdminPage() {
                           </td>
                           <td className="p-4">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-bold uppercase border ${
-                                u.status === "active"
+                              className={`px-2 py-1 rounded text-xs font-bold uppercase border ${u.status === "active"
                                   ? "bg-green-100 text-green-700 border-green-200"
                                   : u.status === "banned"
-                                  ? "bg-red-100 text-red-700 border-red-200"
-                                  : "bg-yellow-100 text-yellow-700 border-yellow-200"
-                              }`}
+                                    ? "bg-red-100 text-red-700 border-red-200"
+                                    : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                                }`}
                             >
                               {u.status}
                             </span>
@@ -611,7 +679,9 @@ export default function AdminPage() {
                           <td className="p-4 text-right flex justify-end gap-2">
                             {u.status !== "active" && (
                               <button
-                                onClick={() => updateUserStatus(u.id, "active")}
+                                onClick={() =>
+                                  updateUserStatus(u.id, "active")
+                                }
                                 className="px-3 py-1 text-xs font-bold border-2 border-black bg-[#15F5BA] rounded hover:shadow-[2px_2px_0px_#000] transition-all"
                               >
                                 Approve
@@ -619,7 +689,9 @@ export default function AdminPage() {
                             )}
                             {u.status !== "banned" && (
                               <button
-                                onClick={() => updateUserStatus(u.id, "banned")}
+                                onClick={() =>
+                                  updateUserStatus(u.id, "banned")
+                                }
                                 className="px-3 py-1 text-xs font-bold border-2 border-gray-300 bg-white text-red-500 rounded hover:border-red-500 hover:bg-red-50 transition-all"
                               >
                                 Ban

@@ -66,7 +66,7 @@ export default async function Home() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Mobile Search */}
             <Link
               href="/explore"
@@ -108,16 +108,16 @@ export default async function Home() {
               Search
             </Link>
 
-            {/* Login Link - Managed by client-side redirect if already logged in */}
+            {/* Login Link */}
             <Link
               href="/login"
-              className="text-xs font-bold px-5 py-2 rounded-full bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all"
+              className="text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 rounded-full bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all"
             >
-              Writer Login
+              <span className="hidden sm:inline">Writer </span>Login
             </Link>
             <Link
               href="/apply"
-              className="text-xs font-bold px-5 py-2 rounded-full bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all"
+              className="hidden sm:inline-block text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 rounded-full bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all"
             >
               Apply
             </Link>
@@ -128,10 +128,10 @@ export default async function Home() {
       <main className="flex-1 max-w-7xl mx-auto px-4 md:px-8 py-10 w-full">
         {/* --- 1. HERO --- */}
         <div className="mb-16 border-b border-gray-100 pb-10">
-          <h1 className="unbounded-900 text-4xl md:text-7xl tracking-tighter text-black mb-4">
+          <h1 className="unbounded-900 text-3xl sm:text-4xl md:text-7xl tracking-tighter text-black mb-4">
             The Feed.
           </h1>
-          <p className="text-xl md:text-2xl text-gray-500 font-light max-w-2xl leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-500 font-light max-w-2xl leading-relaxed">
             Engineering, design, and culture. <br />
             Stories from the team building{" "}
             <a

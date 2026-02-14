@@ -139,7 +139,7 @@ export default function CreatorDashboard() {
               href="/dashboard/profile"
               className="flex-1 sm:flex-initial text-center border-2 border-black px-4 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all text-sm"
             >
-              👤 Profile
+              <span className="inline-flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> Profile</span>
             </Link>
             {view === "list" && (
               <button

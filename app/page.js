@@ -117,7 +117,7 @@ export default async function Home() {
             </Link>
             <Link
               href="/apply"
-              className="hidden sm:inline-block text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 rounded-full bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all"
+              className="text-[10px] md:text-xs font-bold px-3 md:px-5 py-2 rounded-full bg-gray-100 text-gray-900 hover:bg-black hover:text-white transition-all"
             >
               Apply
             </Link>

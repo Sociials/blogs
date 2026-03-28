@@ -14,10 +14,14 @@ import {
 } from "../lib/http";
 
 function getEditorValidationMessage(formData) {
-  if (!formData.title.trim()) return "Add a title first so the post has a clear angle.";
-  if (!formData.slug.trim()) return "Add a slug so the post can get its own URL.";
-  if (!formData.summary.trim()) return "Add a short summary so readers know why they should click.";
-  if (!formData.content.trim()) return "Write the main post first. A rough draft is fine.";
+  if (!formData.title.trim())
+    return "Add a title first so the post has a clear angle.";
+  if (!formData.slug.trim())
+    return "Add a slug so the post can get its own URL.";
+  if (!formData.summary.trim())
+    return "Add a short summary so readers know why they should click.";
+  if (!formData.content.trim())
+    return "Write the main post first. A rough draft is fine.";
   return null;
 }
 
@@ -97,6 +101,7 @@ export default function AdminPage() {
         cache: "no-store",
       });
       const data = await readResponseBody(res);
+
       if (res.ok) {
         setBlogs(extractList(data));
       } else if (res.status === 401) {
@@ -131,7 +136,7 @@ export default function AdminPage() {
 
       await parseResponseOrThrow(
         res,
-        `We could not change this user to ${status}.`
+        `We could not change this user to ${status}.`,
       );
 
       setMessage({
@@ -144,7 +149,7 @@ export default function AdminPage() {
       setMessage({
         text: getErrorMessage(
           err,
-          `We could not change this user to ${status}.`
+          `We could not change this user to ${status}.`,
         ),
         type: "error",
       });
@@ -304,7 +309,7 @@ export default function AdminPage() {
   };
 
   const filteredBlogs = blogs.filter((b) =>
-    b.title.toLowerCase().includes(searchQuery.toLowerCase())
+    b.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Styles
@@ -341,13 +346,24 @@ export default function AdminPage() {
         <div className="flex gap-2 pb-2 -mt-1">
           <button
             onClick={() => setActiveSection("posts")}
-            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${activeSection === "posts"
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
+              activeSection === "posts"
                 ? "bg-black text-white shadow-md"
                 : "bg-gray-100 text-gray-500 hover:text-black"
-              }`}
+            }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
                 <line x1="8" y1="13" x2="16" y2="13" />
@@ -358,13 +374,24 @@ export default function AdminPage() {
           </button>
           <button
             onClick={() => setActiveSection("users")}
-            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${activeSection === "users"
+            className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
+              activeSection === "users"
                 ? "bg-black text-white shadow-md"
                 : "bg-gray-100 text-gray-500 hover:text-black"
-              }`}
+            }`}
           >
             <span className="inline-flex items-center gap-1.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
                 <circle cx="9.5" cy="7" r="3" />
                 <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -396,7 +423,17 @@ export default function AdminPage() {
             >
               {showMobileSidebar ? (
                 <span className="inline-flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
@@ -404,7 +441,17 @@ export default function AdminPage() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
                     <line x1="8" y1="6" x2="21" y2="6" />
                     <line x1="8" y1="12" x2="21" y2="12" />
                     <line x1="8" y1="18" x2="21" y2="18" />
@@ -419,15 +466,17 @@ export default function AdminPage() {
 
             {/* LEFT SIDEBAR: BLOG LIST */}
             <div
-              className={`w-full lg:col-span-3 flex flex-col gap-4 lg:h-[calc(100vh-120px)] lg:sticky lg:top-24 ${showMobileSidebar ? "block" : "hidden lg:flex"
-                }`}
+              className={`w-full lg:col-span-3 flex flex-col gap-4 lg:h-[calc(100vh-120px)] lg:sticky lg:top-24 ${
+                showMobileSidebar ? "block" : "hidden lg:flex"
+              }`}
             >
               <button
                 onClick={handleReset}
-                className={`w-full py-3 md:py-4 rounded-[15px] border-2 border-black font-bold text-base md:text-lg shadow-[4px_4px_0px_#000] transition-all active:translate-y-1 hover:shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2 ${editingId === null
+                className={`w-full py-3 md:py-4 rounded-[15px] border-2 border-black font-bold text-base md:text-lg shadow-[4px_4px_0px_#000] transition-all active:translate-y-1 hover:shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2 ${
+                  editingId === null
                     ? "bg-[#A259FF] text-white"
                     : "bg-white hover:bg-gray-50"
-                  }`}
+                }`}
               >
                 <span>+</span> Create New Post
               </button>
@@ -436,7 +485,17 @@ export default function AdminPage() {
                 <div className="p-3 md:p-4 border-b-2 border-gray-100">
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
                         <circle cx="11" cy="11" r="8" />
                         <path d="m21 21-4.35-4.35" />
                       </svg>
@@ -461,18 +520,22 @@ export default function AdminPage() {
                       <div
                         key={blog.id}
                         onClick={() => handleEdit(blog)}
-                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:translate-x-1 ${editingId === blog.id
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:translate-x-1 ${
+                          editingId === blog.id
                             ? "bg-[#F3F2EC] border-black shadow-[2px_2px_0px_#A259FF]"
                             : "bg-white border-transparent hover:border-gray-200"
-                          }`}
+                        }`}
                       >
                         <h4 className="font-bold text-sm line-clamp-2 leading-tight">
                           {blog.title}
                         </h4>
-                        <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${blog.status === "draft"
-                            ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-                            : "bg-green-100 text-green-700 border-green-300"
-                          }`}>
+                        <span
+                          className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                            blog.status === "draft"
+                              ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                              : "bg-green-100 text-green-700 border-green-300"
+                          }`}
+                        >
                           {blog.status || "published"}
                         </span>
                         <span className="text-[10px] text-gray-500 font-mono mt-1 block">
@@ -509,7 +572,8 @@ export default function AdminPage() {
                     )}
                   </div>
                   <p className="text-sm text-gray-500 mb-3">
-                    Keep the title clear, clickable, and human. Strong beats overcomplicated.
+                    Keep the title clear, clickable, and human. Strong beats
+                    overcomplicated.
                   </p>
                   <input
                     type="text"
@@ -533,20 +597,22 @@ export default function AdminPage() {
                       <button
                         type="button"
                         onClick={() => setActiveTab("write")}
-                        className={`px-3 md:px-4 py-1 rounded-md text-xs md:text-sm font-bold transition-all ${activeTab === "write"
+                        className={`px-3 md:px-4 py-1 rounded-md text-xs md:text-sm font-bold transition-all ${
+                          activeTab === "write"
                             ? "bg-white shadow-sm"
                             : "text-gray-500"
-                          }`}
+                        }`}
                       >
                         Write
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveTab("preview")}
-                        className={`px-3 md:px-4 py-1 rounded-md text-xs md:text-sm font-bold transition-all ${activeTab === "preview"
+                        className={`px-3 md:px-4 py-1 rounded-md text-xs md:text-sm font-bold transition-all ${
+                          activeTab === "preview"
                             ? "bg-white shadow-sm"
                             : "text-gray-500"
-                          }`}
+                        }`}
                       >
                         Preview
                       </button>
@@ -597,8 +663,9 @@ export default function AdminPage() {
                     Writer Notes
                   </p>
                   <div className="rounded-xl bg-[#F7F4EA] border border-[#E8DDB8] p-3 mb-4 text-sm text-gray-700 leading-relaxed">
-                    First-time writer move: make one point, back it with one real
-                    example, then end with one takeaway people can actually use.
+                    First-time writer move: make one point, back it with one
+                    real example, then end with one takeaway people can actually
+                    use.
                   </div>
                   <h3 className="font-black text-lg mb-4">
                     {editingId ? "Update Post" : "New Post"}
@@ -690,7 +757,17 @@ export default function AdminPage() {
                           imageFile.name
                         ) : (
                           <span className="inline-flex items-center gap-1.5">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
                               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                               <circle cx="12" cy="13" r="4" />
                             </svg>
@@ -748,15 +825,18 @@ export default function AdminPage() {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-bold">{u.name}</p>
-                            <p className="text-xs text-gray-500 font-mono">{u.email}</p>
+                            <p className="text-xs text-gray-500 font-mono">
+                              {u.email}
+                            </p>
                           </div>
                           <span
-                            className={`px-2 py-1 rounded text-xs font-bold uppercase border ${u.status === "active"
+                            className={`px-2 py-1 rounded text-xs font-bold uppercase border ${
+                              u.status === "active"
                                 ? "bg-green-100 text-green-700 border-green-200"
                                 : u.status === "banned"
                                   ? "bg-red-100 text-red-700 border-red-200"
                                   : "bg-yellow-100 text-yellow-700 border-yellow-200"
-                              }`}
+                            }`}
                           >
                             {u.status}
                           </span>
@@ -814,12 +894,13 @@ export default function AdminPage() {
                           </td>
                           <td className="p-4">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-bold uppercase border ${u.status === "active"
+                              className={`px-2 py-1 rounded text-xs font-bold uppercase border ${
+                                u.status === "active"
                                   ? "bg-green-100 text-green-700 border-green-200"
                                   : u.status === "banned"
                                     ? "bg-red-100 text-red-700 border-red-200"
                                     : "bg-yellow-100 text-yellow-700 border-yellow-200"
-                                }`}
+                              }`}
                             >
                               {u.status}
                             </span>
@@ -827,9 +908,7 @@ export default function AdminPage() {
                           <td className="p-4 text-right flex justify-end gap-2">
                             {u.status !== "active" && (
                               <button
-                                onClick={() =>
-                                  updateUserStatus(u.id, "active")
-                                }
+                                onClick={() => updateUserStatus(u.id, "active")}
                                 className="px-3 py-1 text-xs font-bold border-2 border-black bg-[#15F5BA] rounded hover:shadow-[2px_2px_0px_#000] transition-all"
                               >
                                 Approve
@@ -837,9 +916,7 @@ export default function AdminPage() {
                             )}
                             {u.status !== "banned" && (
                               <button
-                                onClick={() =>
-                                  updateUserStatus(u.id, "banned")
-                                }
+                                onClick={() => updateUserStatus(u.id, "banned")}
                                 className="px-3 py-1 text-xs font-bold border-2 border-gray-300 bg-white text-red-500 rounded hover:border-red-500 hover:bg-red-50 transition-all"
                               >
                                 Ban

@@ -1,14 +1,19 @@
 "use client";
 import { useState } from "react";
 
-export default function BlogImage({ src, alt }) {
+export default function BlogImage({
+  src,
+  alt,
+  className = "",
+  disableHoverScale = false,
+}) {
   const [error, setError] = useState(false);
 
   // 1. HELPER: Check if string is a valid URL
   const isValidUrl = (urlString) => {
     try {
       return Boolean(new URL(urlString));
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -66,7 +71,9 @@ export default function BlogImage({ src, alt }) {
     <img
       src={finalSrc}
       alt={alt}
-      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+      className={`w-full h-full transition-transform duration-500 ease-out ${
+        disableHoverScale ? "" : "group-hover:scale-105"
+      } ${className || "object-cover"}`}
       onError={() => setError(true)}
     />
   );

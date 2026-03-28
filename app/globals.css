@@ -24,3 +24,58 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes float-gentle {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes float-gentle-delayed {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, 12px, 0);
+  }
+}
+
+@keyframes wiggle-soft {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(-4deg);
+  }
+}
+
+@keyframes orbit-slow {
+  0% {
+    transform: translate3d(-50%, -50%, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate3d(-50%, -50%, 0) rotate(360deg);
+  }
+}
+
+.float-gentle {
+  animation: float-gentle 4.8s ease-in-out infinite;
+}
+
+.float-gentle-delayed {
+  animation: float-gentle-delayed 5.5s ease-in-out infinite;
+}
+
+.wiggle-soft {
+  animation: wiggle-soft 3.2s ease-in-out infinite;
+}
+
+.orbit-slow {
+  animation: orbit-slow 20s linear infinite;
+}

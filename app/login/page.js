@@ -1,15 +1,18 @@
 "use client";
+
 import { useState } from "react";
-import Link from "next/link"; // Recommended for the "Back" button or footer links
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import StatusBanner from "../components/StatusBanner";
+import { getErrorMessage, parseResponseOrThrow } from "../lib/http";
+
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const router = useRouter();
+  const [status, setStatus] = useState({ text: "", type: "" });
+
   async function handleLogin(e) {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setStatus({ text: "", type: "" });
 
     const body = {
       email: e.target.email.value,
@@ -23,33 +26,29 @@ export default function LoginPage() {
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+      const data = await parseResponseOrThrow(
+        res,
+        "Login failed. Check your email and password and try again."
+      );
 
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
-      }
-
-      // ✅ Success! The Cookie is now safely stored in the browser (HttpOnly).
-
-      // Store public info for UI (like "Welcome, Admin")
-      // Do NOT store the token here.
       if (data.role) localStorage.setItem("role", data.role);
       if (data.name) localStorage.setItem("userName", data.name);
 
-      console.log("Login success, redirecting...");
-
-      // 🔄 Force Hard Redirect to ensure Middleware/Server sees the new Cookie
       if (data.role === "admin") {
-        console.log("Here");
-
         window.location.href = "/admin";
       } else {
         window.location.href = "/dashboard/create";
       }
     } catch (err) {
       console.error("Login Error:", err);
-      setError(err.message);
-      setLoading(false); // Only stop loading on error
+      setStatus({
+        text: getErrorMessage(
+          err,
+          "We could not sign you in right now. Please try again."
+        ),
+        type: "error",
+      });
+      setLoading(false);
     }
   }
 
@@ -58,11 +57,12 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-8 rounded-xl">
         <h1 className="unbounded-900 text-3xl mb-6 text-black">Writer Login</h1>
 
-        {error && (
-          <div className="bg-red-50 border-2 border-red-500 text-red-600 font-bold p-3 mb-4 rounded-lg text-sm">
-            ❌ {error}
-          </div>
-        )}
+        <StatusBanner
+          message={status.text}
+          type={status.type}
+          className="mb-4"
+          onDismiss={() => setStatus({ text: "", type: "" })}
+        />
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
@@ -74,7 +74,7 @@ export default function LoginPage() {
               type="email"
               placeholder="you@sociials.com"
               required
-              className="w-full border-2 border-black text-black   p-3 rounded-lg font-bold focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all"
+              className="w-full border-2 border-black text-black p-3 rounded-lg font-bold focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all"
             />
           </div>
 
@@ -85,7 +85,7 @@ export default function LoginPage() {
             <input
               name="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               required
               className="w-full border-2 border-black p-3 text-black rounded-lg font-bold focus:outline-none focus:shadow-[4px_4px_0px_#A259FF] transition-all"
             />
@@ -104,7 +104,7 @@ export default function LoginPage() {
             href="/"
             className="text-xs font-bold text-gray-400 hover:text-black underline decoration-2 underline-offset-4"
           >
-            ← Back to Home
+            {"<-"} Back to Home
           </Link>
         </div>
       </div>

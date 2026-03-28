@@ -1,17 +1,20 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import StatusBanner from "../components/StatusBanner";
+import { getErrorMessage, parseResponseOrThrow } from "../lib/http";
 
 export default function ApplyPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [status, setStatus] = useState({ text: "", type: "" });
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setStatus({ text: "", type: "" });
 
     const formData = {
       name: e.target.name.value,
@@ -20,24 +23,33 @@ export default function ApplyPage() {
     };
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      await parseResponseOrThrow(
+        res,
+        "We could not submit your application. Please try again."
       );
 
-      const data = await res.json();
+      setStatus({
+        text: "Application submitted. We will review it and get back to you.",
+        type: "success",
+      });
 
-      if (!res.ok) throw new Error(data.error || "Failed to apply");
-
-      alert("Application Submitted! Wait for approval.");
-      router.push("/");
+      setTimeout(() => {
+        router.push("/");
+      }, 900);
     } catch (err) {
-      setError(err.message);
-    } finally {
+      setStatus({
+        text: getErrorMessage(
+          err,
+          "We could not submit your application. Please try again."
+        ),
+        type: "error",
+      });
       setLoading(false);
     }
   }
@@ -45,7 +57,6 @@ export default function ApplyPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F3F2EC] p-4 font-sans">
       <div className="max-w-md w-full bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-8 rounded-xl">
-        {/* Added text-black to header */}
         <h1 className="unbounded-900 text-3xl mb-2 text-black">
           Join the Team
         </h1>
@@ -53,11 +64,12 @@ export default function ApplyPage() {
           Apply to become a writer.
         </p>
 
-        {error && (
-          <div className="bg-red-100 text-red-600 p-3 mb-4 text-sm font-bold border-2 border-red-500 rounded">
-            {error}
-          </div>
-        )}
+        <StatusBanner
+          message={status.text}
+          type={status.type}
+          className="mb-4"
+          onDismiss={() => setStatus({ text: "", type: "" })}
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -68,7 +80,6 @@ export default function ApplyPage() {
               name="name"
               required
               type="text"
-              // Added bg-white and placeholder color
               className="w-full bg-white border-2 border-black text-black p-2 rounded font-bold focus:outline-none focus:shadow-[2px_2px_0px_#A259FF]"
             />
           </div>

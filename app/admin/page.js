@@ -1,9 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import MarkdownToolbar from "../components/MarkdownToolbar";
+import StatusBanner from "../components/StatusBanner";
+import {
+  extractList,
+  getErrorMessage,
+  parseResponseOrThrow,
+  readResponseBody,
+} from "../lib/http";
+
+function getEditorValidationMessage(formData) {
+  if (!formData.title.trim()) return "Add a title first so the post has a clear angle.";
+  if (!formData.slug.trim()) return "Add a slug so the post can get its own URL.";
+  if (!formData.summary.trim()) return "Add a short summary so readers know why they should click.";
+  if (!formData.content.trim()) return "Write the main post first. A rough draft is fine.";
+  return null;
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -23,6 +39,7 @@ export default function AdminPage() {
     summary: "",
     tags: "",
     content: "",
+    status: "published",
   });
 
   const [loading, setLoading] = useState(false);
@@ -42,7 +59,7 @@ export default function AdminPage() {
   const textareaRef = useRef(null);
 
   // --- API FUNCTIONS ---
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setUsersLoading(true);
       const res = await fetch("/api/admin/users", {
@@ -50,30 +67,54 @@ export default function AdminPage() {
         cache: "no-store",
       });
 
-      const data = await res.json();
+      const data = await readResponseBody(res);
+
       if (res.ok) {
-        setUsers(data);
+        setUsers(extractList(data));
+      } else if (res.status === 401) {
+        router.push("/login");
+      } else {
+        setMessage({
+          text: getErrorMessage(data, "We could not load users."),
+          type: "error",
+        });
       }
     } catch (err) {
       console.error("Failed to fetch users", err);
+      setMessage({
+        text: getErrorMessage(err, "We could not load users."),
+        type: "error",
+      });
     } finally {
       setUsersLoading(false);
     }
-  };
+  }, [router]);
 
-  const fetchBlogs = async () => {
+  const fetchBlogs = useCallback(async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/feed`, {
+      const res = await fetch("/api/admin/blogs", {
+        credentials: "include",
         cache: "no-store",
       });
-      const json = await res.json();
+      const data = await readResponseBody(res);
       if (res.ok) {
-        setBlogs(Array.isArray(json) ? json : []);
+        setBlogs(extractList(data));
+      } else if (res.status === 401) {
+        router.push("/login");
+      } else {
+        setMessage({
+          text: getErrorMessage(data, "We could not load posts."),
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Failed to fetch blogs", error);
+      setMessage({
+        text: getErrorMessage(error, "We could not load posts."),
+        type: "error",
+      });
     }
-  };
+  }, [router]);
 
   const updateUserStatus = async (id, status) => {
     if (
@@ -87,23 +128,38 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (res.ok) {
-        fetchUsers();
-      }
+
+      await parseResponseOrThrow(
+        res,
+        `We could not change this user to ${status}.`
+      );
+
+      setMessage({
+        text: `User status changed to ${status}.`,
+        type: "success",
+      });
+      fetchUsers();
     } catch (err) {
       console.error("Failed to update user", err);
+      setMessage({
+        text: getErrorMessage(
+          err,
+          `We could not change this user to ${status}.`
+        ),
+        type: "error",
+      });
     }
   };
 
   useEffect(() => {
     fetchBlogs();
-  }, []);
+  }, [fetchBlogs]);
 
   useEffect(() => {
     if (activeSection === "users") {
       fetchUsers();
     }
-  }, [activeSection]);
+  }, [activeSection, fetchUsers]);
 
   // --- Auto-Slug Logic ---
   useEffect(() => {
@@ -130,12 +186,20 @@ export default function AdminPage() {
     setLoading(true);
     setMessage({ text: "", type: "" });
 
+    const validationError = getEditorValidationMessage(formData);
+    if (validationError) {
+      setLoading(false);
+      setMessage({ text: validationError, type: "error" });
+      return;
+    }
+
     const submitData = new FormData();
     submitData.append("title", formData.title);
     submitData.append("slug", formData.slug);
     submitData.append("summary", formData.summary);
     submitData.append("content", formData.content);
     submitData.append("tags", formData.tags);
+    submitData.append("status", formData.status);
 
     if (imageFile) {
       submitData.append("coverImage", imageFile);
@@ -156,31 +220,27 @@ export default function AdminPage() {
         });
       }
 
-      const data = await res.json();
+      await parseResponseOrThrow(res, "We could not save the blog post.");
 
-      if (res.ok) {
-        setMessage({
-          text: editingId ? "✅ Blog Updated!" : "✅ Blog Published!",
-          type: "success",
-        });
-        fetchBlogs();
-        if (!editingId) handleReset();
-      } else {
-        setMessage({
-          text: `❌ Error: ${data.error || "Failed"}`,
-          type: "error",
-        });
-      }
+      setMessage({
+        text: editingId ? "Blog updated." : "Blog published.",
+        type: "success",
+      });
+      fetchBlogs();
+      if (!editingId) handleReset();
     } catch (error) {
       console.log(error);
-      setMessage({ text: "❌ Connection Failed.", type: "error" });
+      setMessage({
+        text: getErrorMessage(error, "We could not save the blog post."),
+        type: "error",
+      });
     }
     setLoading(false);
   };
 
   const handleDelete = async () => {
     if (!editingId) return;
-    if (!window.confirm("⚠️ Delete this post?")) return;
+    if (!window.confirm("Delete this post?")) return;
 
     setLoading(true);
     try {
@@ -188,17 +248,17 @@ export default function AdminPage() {
         method: "DELETE",
       });
 
-      if (res.ok) {
-        setMessage({ text: "🗑️ Blog Deleted", type: "success" });
-        fetchBlogs();
-        handleReset();
-      } else {
-        const data = await res.json();
-        setMessage({ text: `❌ Error: ${data.error}`, type: "error" });
-      }
+      await parseResponseOrThrow(res, "We could not delete that post.");
+
+      setMessage({ text: "Blog deleted.", type: "success" });
+      fetchBlogs();
+      handleReset();
     } catch (error) {
       console.log(error);
-      setMessage({ text: "❌ Delete Failed", type: "error" });
+      setMessage({
+        text: getErrorMessage(error, "We could not delete that post."),
+        type: "error",
+      });
     }
     setLoading(false);
   };
@@ -211,6 +271,7 @@ export default function AdminPage() {
       summary: blog.summary || "",
       tags: blog.tags || "",
       content: blog.content || "",
+      status: blog.status || "published",
     });
     setImagePreview(blog.coverImage);
     setImageFile(null);
@@ -228,6 +289,7 @@ export default function AdminPage() {
       summary: "",
       tags: "",
       content: "",
+      status: "published",
     });
     setImagePreview(null);
     setImageFile(null);
@@ -259,12 +321,20 @@ export default function AdminPage() {
           <h1 className="unbounded-900 text-lg md:text-2xl font-black">
             Admin <span className="text-[#A259FF]">Panel</span>
           </h1>
-          <button
-            onClick={handleLogout}
-            className="text-xs font-bold border-2 border-black px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:bg-red-50 hover:text-red-600 transition-all"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/profile"
+              className="text-xs font-bold border-2 border-black bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:bg-gray-100 transition-all"
+            >
+              Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="text-xs font-bold border-2 border-black px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:bg-red-50 hover:text-red-600 transition-all"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Bottom row: Navigation Tabs */}
@@ -276,7 +346,15 @@ export default function AdminPage() {
                 : "bg-gray-100 text-gray-500 hover:text-black"
               }`}
           >
-            📝 Posts
+            <span className="inline-flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="8" y1="13" x2="16" y2="13" />
+                <line x1="8" y1="17" x2="13" y2="17" />
+              </svg>
+              Posts
+            </span>
           </button>
           <button
             onClick={() => setActiveSection("users")}
@@ -285,13 +363,28 @@ export default function AdminPage() {
                 : "bg-gray-100 text-gray-500 hover:text-black"
               }`}
           >
-            👥 Users
+            <span className="inline-flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                <circle cx="9.5" cy="7" r="3" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              Users
+            </span>
           </button>
         </div>
       </nav>
 
       {/* --- CONTENT AREA --- */}
       <div className="max-w-[1600px] mx-auto p-3 md:p-6">
+        <StatusBanner
+          message={message.text}
+          type={message.type}
+          className="mb-4"
+          onDismiss={() => setMessage({ text: "", type: "" })}
+        />
+
         {/* CONDITIONAL RENDERING: POSTS VS USERS */}
         {activeSection === "posts" ? (
           /* ================= POSTS VIEW ================= */
@@ -301,7 +394,27 @@ export default function AdminPage() {
               onClick={() => setShowMobileSidebar(!showMobileSidebar)}
               className="lg:hidden w-full py-3 rounded-xl border-2 border-black font-bold text-sm bg-white shadow-[2px_2px_0px_#000] flex items-center justify-center gap-2"
             >
-              {showMobileSidebar ? "✕ Close Post List" : `📋 Browse Posts (${filteredBlogs.length})`}
+              {showMobileSidebar ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  Close Post List
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="8" y1="6" x2="21" y2="6" />
+                    <line x1="8" y1="12" x2="21" y2="12" />
+                    <line x1="8" y1="18" x2="21" y2="18" />
+                    <circle cx="4" cy="6" r="1" fill="currentColor" />
+                    <circle cx="4" cy="12" r="1" fill="currentColor" />
+                    <circle cx="4" cy="18" r="1" fill="currentColor" />
+                  </svg>
+                  Browse Posts ({filteredBlogs.length})
+                </span>
+              )}
             </button>
 
             {/* LEFT SIDEBAR: BLOG LIST */}
@@ -321,13 +434,21 @@ export default function AdminPage() {
 
               <div className="bg-white rounded-[20px] border-2 border-black flex-1 flex flex-col overflow-hidden shadow-[4px_4px_0px_#000] max-h-[50vh] lg:max-h-none">
                 <div className="p-3 md:p-4 border-b-2 border-gray-100">
-                  <input
-                    type="text"
-                    placeholder="🔍 Search posts..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:border-[#A259FF]"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search posts..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-[#A259FF]"
+                    />
+                  </div>
                 </div>
 
                 <div className="overflow-y-auto flex-1 p-2 space-y-2">
@@ -348,6 +469,12 @@ export default function AdminPage() {
                         <h4 className="font-bold text-sm line-clamp-2 leading-tight">
                           {blog.title}
                         </h4>
+                        <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${blog.status === "draft"
+                            ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                            : "bg-green-100 text-green-700 border-green-300"
+                          }`}>
+                          {blog.status || "published"}
+                        </span>
                         <span className="text-[10px] text-gray-500 font-mono mt-1 block">
                           /{blog.slug}
                         </span>
@@ -364,26 +491,9 @@ export default function AdminPage() {
             {/* RIGHT AREA: EDITOR */}
             <form
               onSubmit={handleSubmit}
-              className="w-full lg:col-span-9 flex flex-col xl:grid xl:grid-cols-3 gap-4 md:gap-6"
+              noValidate
+              className="w-full lg:col-span-9 flex flex-col xl:grid xl:grid-cols-3 xl:items-start gap-4 md:gap-6"
             >
-              {message.text && (
-                <div
-                  className={`xl:col-span-3 p-3 md:p-4 rounded-xl border-2 border-black font-bold flex justify-between items-center shadow-[4px_4px_0px_#000] text-sm md:text-base ${message.type === "error"
-                      ? "bg-red-100 text-red-900"
-                      : "bg-[#15F5BA] text-black"
-                    }`}
-                >
-                  <span>{message.text}</span>
-                  <button
-                    type="button"
-                    onClick={() => setMessage({ text: "", type: "" })}
-                    className="px-2"
-                  >
-                    &times;
-                  </button>
-                </div>
-              )}
-
               {/* EDITOR MAIN */}
               <div className="xl:col-span-2 space-y-4 md:space-y-6 order-1">
                 {/* Title Card */}
@@ -398,10 +508,13 @@ export default function AdminPage() {
                       </span>
                     )}
                   </div>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Keep the title clear, clickable, and human. Strong beats overcomplicated.
+                  </p>
                   <input
                     type="text"
                     required
-                    placeholder="Enter title..."
+                    placeholder="Ex: The thing new creators overthink on day one"
                     value={formData.title}
                     className="w-full text-xl md:text-2xl font-bold border-b-2 border-gray-200 focus:border-[#A259FF] outline-none py-2 transition-colors"
                     onChange={(e) =>
@@ -411,7 +524,7 @@ export default function AdminPage() {
                 </div>
 
                 {/* Content Editor Card */}
-                <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] flex flex-col min-h-[400px] md:min-h-[600px]">
+                <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] flex flex-col min-h-[400px] md:min-h-[600px] xl:h-[calc(100vh-8rem)] xl:min-h-0 overflow-hidden">
                   <div className="flex items-center justify-between mb-3 border-b-2 border-gray-100 pb-2">
                     <label className={labelClass + " mb-0"}>
                       Content (Markdown)
@@ -441,7 +554,7 @@ export default function AdminPage() {
                   </div>
 
                   {activeTab === "write" ? (
-                    <div className="flex-1 flex flex-col">
+                    <div className="flex-1 min-h-0 flex flex-col">
                       <MarkdownToolbar
                         textareaRef={textareaRef}
                         content={formData.content}
@@ -452,16 +565,16 @@ export default function AdminPage() {
                       <textarea
                         ref={textareaRef}
                         required
-                        placeholder="# Hello World..."
+                        placeholder="# Start with the one thing you want readers to remember..."
                         value={formData.content}
-                        className="flex-1 w-full resize-none outline-none font-mono text-sm leading-relaxed min-h-[300px] md:min-h-[400px] p-3 border-2 border-gray-200 border-t-0 rounded-b-xl focus:border-[#A259FF] transition-colors"
+                        className="flex-1 min-h-0 w-full resize-none overflow-y-auto outline-none font-mono text-sm leading-relaxed p-3 border-2 border-gray-200 border-t-0 rounded-b-xl focus:border-[#A259FF] transition-colors"
                         onChange={(e) =>
                           setFormData({ ...formData, content: e.target.value })
                         }
                       />
                     </div>
                   ) : (
-                    <div className="flex-1 w-full overflow-y-auto p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 min-h-[300px] md:min-h-[400px]">
+                    <div className="flex-1 min-h-0 w-full overflow-y-auto p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
                       {formData.content ? (
                         <article className="prose prose-sm lg:prose-base max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-img:rounded-xl">
                           <ReactMarkdown>{formData.content}</ReactMarkdown>
@@ -477,11 +590,18 @@ export default function AdminPage() {
               </div>
 
               {/* EDITOR SIDEBAR */}
-              <div className="space-y-4 md:space-y-6 xl:sticky xl:top-24 h-fit order-2">
+              <div className="space-y-4 md:space-y-6 xl:sticky xl:top-24 xl:self-start xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto xl:pr-1 h-fit order-2">
                 {/* Publish Card */}
                 <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[8px_8px_0px_#000]">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500 mb-3">
+                    Writer Notes
+                  </p>
+                  <div className="rounded-xl bg-[#F7F4EA] border border-[#E8DDB8] p-3 mb-4 text-sm text-gray-700 leading-relaxed">
+                    First-time writer move: make one point, back it with one real
+                    example, then end with one takeaway people can actually use.
+                  </div>
                   <h3 className="font-black text-lg mb-4">
-                    {editingId ? "Update Post" : "Publish Post"}
+                    {editingId ? "Update Post" : "New Post"}
                   </h3>
                   <button
                     type="submit"
@@ -491,8 +611,12 @@ export default function AdminPage() {
                     {loading
                       ? "Processing..."
                       : editingId
-                        ? "Save Changes"
-                        : "Publish Now"}
+                        ? formData.status === "draft"
+                          ? "Save Draft Changes"
+                          : "Save Published Changes"
+                        : formData.status === "draft"
+                          ? "Save As Draft"
+                          : "Publish Now"}
                   </button>
                   {editingId && (
                     <button
@@ -507,6 +631,19 @@ export default function AdminPage() {
 
                 {/* Meta Fields Card */}
                 <div className="bg-white p-4 md:p-6 rounded-[20px] border-2 border-black shadow-[4px_4px_0px_#000] space-y-4">
+                  <div>
+                    <label className={labelClass}>Status</label>
+                    <select
+                      value={formData.status}
+                      className={inputClass}
+                      onChange={(e) =>
+                        setFormData({ ...formData, status: e.target.value })
+                      }
+                    >
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
                   <div>
                     <label className={labelClass}>Slug</label>
                     <input
@@ -524,7 +661,7 @@ export default function AdminPage() {
                     <label className={labelClass}>Tags</label>
                     <input
                       type="text"
-                      placeholder="tech, react"
+                      placeholder="product, creators, culture"
                       value={formData.tags}
                       className={inputClass}
                       onChange={(e) =>
@@ -538,6 +675,7 @@ export default function AdminPage() {
                       rows="3"
                       required
                       value={formData.summary}
+                      placeholder="Say what the post is about in 1-2 lines and why someone should care."
                       className={inputClass}
                       onChange={(e) =>
                         setFormData({ ...formData, summary: e.target.value })
@@ -548,7 +686,17 @@ export default function AdminPage() {
                     <label className={labelClass}>Cover Image</label>
                     <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 hover:border-[#A259FF] transition-colors group">
                       <p className="text-xs text-gray-500 font-bold group-hover:text-[#A259FF]">
-                        {imageFile ? imageFile.name : "📷 Click to Upload"}
+                        {imageFile ? (
+                          imageFile.name
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                              <circle cx="12" cy="13" r="4" />
+                            </svg>
+                            Upload cover
+                          </span>
+                        )}
                       </p>
                       <input
                         type="file"

@@ -86,6 +86,12 @@ const Icons = {
       <line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
     </svg>
   ),
+  checklist: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  ),
 };
 
 // --- Toolbar Button Definitions ---
@@ -102,6 +108,7 @@ const TOOLBAR_ITEMS = [
   { type: "divider" },
   { icon: Icons.listBullet, title: "Bullet List", prefix: "- ", suffix: "", placeholder: "list item", block: true, id: "ul" },
   { icon: Icons.listOrdered, title: "Numbered List", prefix: "1. ", suffix: "", placeholder: "list item", block: true, id: "ol" },
+  { icon: Icons.checklist, title: "Checklist", prefix: "- [ ] ", suffix: "", placeholder: "next step", block: true, id: "checklist" },
   { type: "divider" },
   { icon: Icons.codeBlock, title: "Code Block", prefix: "```\n", suffix: "\n```", placeholder: "code", block: true, id: "codeblock" },
   { icon: Icons.codeInline, title: "Inline Code", prefix: "`", suffix: "`", placeholder: "code", id: "codeinline" },
@@ -111,7 +118,59 @@ const TOOLBAR_ITEMS = [
   { icon: Icons.horizontalRule, title: "Horizontal Rule", prefix: "\n---\n", suffix: "", placeholder: "", block: true, noSelect: true, id: "hr" },
 ];
 
+const QUICK_INSERTS = [
+  {
+    id: "hook",
+    label: "Hook",
+    text: "## The hook\n\nSay the sharpest point first.\n\n",
+  },
+  {
+    id: "tldr",
+    label: "TL;DR",
+    text: "> TL;DR: say the core point in one line.\n\n",
+  },
+  {
+    id: "checklist",
+    label: "Checklist",
+    text: "## Checklist\n\n- [ ] First point\n- [ ] Second point\n- [ ] Final takeaway\n\n",
+  },
+  {
+    id: "story",
+    label: "Story Beat",
+    text: "## What happened\n\n## Why it mattered\n\n## What changed\n\n",
+  },
+  {
+    id: "takeaway",
+    label: "Takeaway",
+    text: "## Final takeaway\n\nLeave the reader with one line they will remember.\n\n",
+  },
+];
+
 export default function MarkdownToolbar({ textareaRef, content, setContent }) {
+  const insertRawText = useCallback(
+    (text) => {
+      const textarea = textareaRef?.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = content.substring(0, start);
+      const after = content.substring(end);
+      const needsLeadingBreak = start > 0 && content[start - 1] !== "\n";
+      const insertion = `${needsLeadingBreak ? "\n\n" : ""}${text}`;
+      const newText = `${before}${insertion}${after}`;
+
+      setContent(newText);
+
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const pos = start + insertion.length;
+        textarea.setSelectionRange(pos, pos);
+      });
+    },
+    [content, setContent, textareaRef]
+  );
+
   // --- Insert Markdown Formatting ---
   const insertFormatting = useCallback(
     (item) => {
@@ -185,13 +244,24 @@ export default function MarkdownToolbar({ textareaRef, content, setContent }) {
     const words = trimmed ? trimmed.split(/\s+/).length : 0;
     const chars = (content || "").length;
     const readTime = Math.max(1, Math.ceil(words / 200));
-    return { words, chars, readTime };
+    const progress = Math.min(100, Math.round((words / 500) * 100));
+    const mood =
+      words === 0
+        ? "blank canvas"
+        : words < 80
+          ? "warming up"
+          : words < 220
+            ? "solid start"
+            : words < 500
+              ? "looking strong"
+              : "ready to polish";
+    return { words, chars, readTime, progress, mood };
   }, [content]);
 
   return (
     <div className="space-y-0">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 bg-gray-50 border-2 border-gray-200 rounded-t-xl">
+      <div className="flex flex-wrap items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 bg-gradient-to-r from-[#FFF8DC] via-white to-[#EEF4FF] border-2 border-gray-200 rounded-t-xl">
         {TOOLBAR_ITEMS.map((item, i) =>
           item.type === "divider" ? (
             <div
@@ -215,12 +285,35 @@ export default function MarkdownToolbar({ textareaRef, content, setContent }) {
       </div>
 
       {/* Stats Bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-x-2 border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-        <div className="flex gap-4">
-          <span>{stats.words} words</span>
-          <span>{stats.chars} chars</span>
+      <div className="space-y-2 px-3 py-2 bg-gray-50 border-x-2 border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-4">
+            <span>{stats.words} words</span>
+            <span>{stats.chars} chars</span>
+            <span>{stats.mood}</span>
+          </div>
+          <span>~{stats.readTime} min read</span>
         </div>
-        <span>~{stats.readTime} min read</span>
+        <div className="h-1.5 rounded-full bg-white border border-gray-200 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-[#15F5BA] via-[#A259FF] to-black transition-all"
+            style={{ width: `${Math.max(stats.progress, stats.words > 0 ? 6 : 0)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Quick Insert Row */}
+      <div className="flex flex-wrap gap-2 px-3 py-2 bg-gray-50 border-x-2 border-b-2 border-gray-200">
+        {QUICK_INSERTS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => insertRawText(item.text)}
+            className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-gray-600 hover:border-black hover:text-black hover:-translate-y-0.5 transition-all"
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
     </div>
   );
